@@ -1,10 +1,7 @@
 package com.srm.msbackend.entities;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
+
 import java.math.BigDecimal;
 
 @Entity
@@ -13,10 +10,12 @@ public class TipoRecebivel {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
     private String nome;
+
     private BigDecimal spread;
 
-    protected TipoRecebivel() {
+    public TipoRecebivel() {
     }
 
     public TipoRecebivel(String nome, BigDecimal spread) {
@@ -24,9 +23,23 @@ public class TipoRecebivel {
         this.spread = spread;
     }
 
-    public Long getId() { return id; }
-    public String getNome() { return nome; }
-    public void setNome(String nome) { this.nome = nome; }
-    public BigDecimal getSpread() { return spread; }
-    public void setSpread(BigDecimal spread) { this.spread = spread; }
+    public Long getId() {
+        return id;
+    }
+
+    public String getNome() {
+        return nome;
+    }
+
+    public void setNome(String nome) {
+        this.nome = nome;
+    }
+
+    public BigDecimal getSpread() {
+        return spread;
+    }
+
+    public void setSpread(BigDecimal spread) {
+        this.spread = spread;
+    }
 }
