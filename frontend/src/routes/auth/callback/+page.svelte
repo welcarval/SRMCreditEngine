@@ -1,12 +1,12 @@
-<script>
+<script lang="ts">
   import { onMount } from 'svelte';
-  import { completeLogin, auth } from '$lib/auth.svelte.js';
+  import { completeLogin, auth } from '$lib/auth.svelte';
 
   onMount(async () => {
     try {
       await completeLogin();
-    } catch (error) {
-      auth.error = error.message;
+    } catch (error: unknown) {
+      auth.error = error instanceof Error ? error.message : 'Não foi possível concluir a autenticação.';
     }
   });
 </script>

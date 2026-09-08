@@ -1,9 +1,9 @@
-<script>
+<script lang="ts">
   import '../styles.css';
   import { browser } from '$app/environment';
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
-  import { auth, initializeAuth } from '$lib/auth.svelte.js';
+  import { auth, initializeAuth } from '$lib/auth.svelte';
 
   onMount(async () => {
     await initializeAuth();

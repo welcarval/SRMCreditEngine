@@ -1,14 +1,22 @@
-<script>
-  import { api } from '$lib/api.js';
-  let { item = null, funds = [], companies = [], onclose = () => {}, onsaved = () => {} } = $props();
-  let form = $state({
-    valorFace: item?.valorFace ?? '', dataVencimento: item?.dataVencimento || '',
-    fundoId: item?.fundo?.id ?? item?.fundoId ?? '', tipoId: item?.tipo?.id ?? item?.tipoId ?? '',
-    empresaId: item?.empresa?.id ?? item?.empresaId ?? '', prazo: item?.prazo ?? '',
-    spread: item?.spread ?? item?.tipo?.spread ?? '', taxaBase: item?.taxaBase ?? item?.fundo?.taxaBase ?? ''
+<script lang="ts">
+  import { api } from '$lib/api';
+  import type { Company, Fund, Receivable, ReceivablePayload } from '$lib/types';
+  let { item, funds, companies, onclose, onsaved }: {
+    item: Receivable | null;
+    funds: Fund[];
+    companies: Company[];
+    onclose: () => void;
+    onsaved: (saved: Receivable) => void;
+  } = $props();
+  let form = $state<ReceivablePayload>({
+    valorFace: item?.valorFace ?? 0, dataVencimento: item?.dataVencimento || '',
+    fundoId: item?.fundo?.id ?? item?.fundoId ?? 0, tipoId: item?.tipo?.id ?? item?.tipoId ?? 0,
+    empresaId: item?.empresa?.id ?? item?.empresaId ?? 0, prazo: item?.prazo ?? 0,
+    spread: item?.spread ?? item?.tipo?.spread ?? 0, taxaBase: item?.taxaBase ?? item?.fundo?.taxaBase ?? 0,
+    valorPresente: item?.valorPresente ?? 0
   });
   let error = $state('');
-  let days = $derived(form.dataVencimento ? Math.ceil((new Date(`${form.dataVencimento}T00:00:00`) - new Date()) / 86400000) : 0);
+  let days = $derived(form.dataVencimento ? Math.ceil((new Date(`${form.dataVencimento}T00:00:00`).getTime() - Date.now()) / 86400000) : 0);
   let presentValue = $derived(form.valorFace ? Number(form.valorFace) / Math.pow(1 + Number(form.taxaBase || 0) + Number(form.spread || 0), Math.max(days / 365, 0)) : 0);
 
   async function save() {
@@ -16,7 +24,7 @@
       const payload = { id: item?.id, valorFace: Number(form.valorFace), valorPresente: presentValue, dataVencimento: form.dataVencimento, fundoId: Number(form.fundoId), tipoId: Number(form.tipoId), empresaId: Number(form.empresaId), prazo: Number(form.prazo || days / 365), spread: Number(form.spread || 0), taxaBase: Number(form.taxaBase || 0) };
       const saved = item ? await api.updateReceivable(item.id, payload) : await api.createReceivable(payload);
       onsaved(saved);
-    } catch (err) { error = err.message; }
+    } catch (err: unknown) { error = err instanceof Error ? err.message : 'Não foi possível salvar o recebível.'; }
   }
 </script>
 

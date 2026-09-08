@@ -1,7 +1,12 @@
-<script>
-  import { api } from '$lib/api.js';
-  let { fund = null, onclose = () => {}, onsaved = () => {} } = $props();
-  let form = $state({ nome: fund?.nome || '', cnpj: fund?.cnpj || '', taxaBase: fund?.taxaBase ?? '', contaId: fund?.conta?.id ?? fund?.contaId ?? '' });
+<script lang="ts">
+  import { api } from '$lib/api';
+  import type { Fund, FundPayload } from '$lib/types';
+  let { fund, onclose, onsaved }: {
+    fund: Fund | null;
+    onclose: () => void;
+    onsaved: (saved: Fund) => void;
+  } = $props();
+  let form = $state<FundPayload>({ nome: fund?.nome || '', cnpj: fund?.cnpj || '', taxaBase: fund?.taxaBase ?? 0, contaId: fund?.conta?.id ?? fund?.contaId ?? null });
   let error = $state('');
 
   async function save() {
@@ -9,7 +14,7 @@
       const payload = { id: fund?.id, nome: form.nome, cnpj: form.cnpj, taxaBase: Number(form.taxaBase), contaId: form.contaId ? Number(form.contaId) : null };
       const saved = fund ? await api.updateFund(fund.id, payload) : await api.createFund(payload);
       onsaved(saved);
-    } catch (err) { error = err.message; }
+    } catch (err: unknown) { error = err instanceof Error ? err.message : 'Não foi possível salvar o fundo.'; }
   }
 </script>
 

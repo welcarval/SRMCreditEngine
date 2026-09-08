@@ -1,11 +1,11 @@
-<script>
-  import { login, auth } from '$lib/auth.svelte.js';
+<script lang="ts">
+  import { login, auth } from '$lib/auth.svelte';
 
   async function startLogin() {
     try {
       await login();
-    } catch (error) {
-      auth.error = error.message;
+    } catch (error: unknown) {
+      auth.error = error instanceof Error ? error.message : 'Não foi possível iniciar a autenticação.';
     }
   }
 </script>

@@ -1,9 +1,10 @@
 import { browser } from '$app/environment';
 import { goto } from '$app/navigation';
 import { UserManager, WebStorageStateStore } from 'oidc-client-ts';
+import type { User, UserManagerSettings } from 'oidc-client-ts';
 import { env } from '$env/dynamic/public';
 
-const config = {
+const config: UserManagerSettings = {
   authority: `${env.PUBLIC_KEYCLOAK_URL || 'http://localhost:8180'}/realms/${env.PUBLIC_KEYCLOAK_REALM || 'srm-credit-engine'}`,
   client_id: env.PUBLIC_KEYCLOAK_CLIENT_ID || 'srm-frontend',
   redirect_uri: browser ? `${window.location.origin}/auth/callback` : '',
@@ -13,11 +14,11 @@ const config = {
   userStore: browser ? new WebStorageStateStore({ store: window.sessionStorage }) : undefined
 };
 
-export const auth = $state({ user: null, loading: true, error: '' });
-let manager;
+export const auth = $state<{ user: User | null; loading: boolean; error: string }>({ user: null, loading: true, error: '' });
+let manager: UserManager | undefined;
 
-function getManager() {
-  if (!browser) return null;
+function getManager(): UserManager {
+  if (!browser) throw new Error('A autenticação OIDC só pode ser iniciada no navegador.');
   manager ??= new UserManager(config);
   return manager;
 }
@@ -25,9 +26,9 @@ function getManager() {
 export async function initializeAuth() {
   if (!browser) return;
   try {
-    auth.user = await getManager().getUser();
-  } catch (error) {
-    auth.error = error.message;
+    auth.user = (await getManager().getUser()) ?? null;
+  } catch (error: unknown) {
+    auth.error = error instanceof Error ? error.message : 'Não foi possível iniciar a autenticação.';
   } finally {
     auth.loading = false;
   }
@@ -39,7 +40,7 @@ export async function login() {
 }
 
 export async function completeLogin() {
-  auth.user = await getManager().signinCallback();
+  auth.user = (await getManager().signinCallback()) ?? null;
   await goto('/');
 }
 

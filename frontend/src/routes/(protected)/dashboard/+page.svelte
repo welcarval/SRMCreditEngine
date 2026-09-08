@@ -1,20 +1,21 @@
-<script>
+<script lang="ts">
   import { onMount } from 'svelte';
-  import { api } from '$lib/api.js';
+  import { api } from '$lib/api';
+  import type { Fund, Receivable } from '$lib/types';
 
-  let funds = $state([]);
-  let receivables = $state([]);
+  let funds = $state<Fund[]>([]);
+  let receivables = $state<Receivable[]>([]);
   let loading = $state(true);
   let error = $state('');
-  const currency = (value) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(value || 0));
-  const date = (value) => value ? new Intl.DateTimeFormat('pt-BR').format(new Date(`${value}T00:00:00`)) : '—';
-  const daysToMaturity = (value) => value ? Math.ceil((new Date(`${value}T00:00:00`) - new Date()) / 86400000) : 0;
+  const currency = (value: number | null | undefined) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(value || 0));
+  const date = (value: string | null | undefined) => value ? new Intl.DateTimeFormat('pt-BR').format(new Date(`${value}T00:00:00`)) : '—';
+  const daysToMaturity = (value: string | null | undefined) => value ? Math.ceil((new Date(`${value}T00:00:00`).getTime() - Date.now()) / 86400000) : 0;
 
   onMount(async () => {
     try {
       [funds, receivables] = await Promise.all([api.funds(), api.receivables()]);
-    } catch (err) {
-      error = err.message;
+    } catch (err: unknown) {
+      error = err instanceof Error ? err.message : 'Não foi possível carregar o dashboard.';
     } finally {
       loading = false;
     }

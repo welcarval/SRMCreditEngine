@@ -1,7 +1,7 @@
-<script>
+<script lang="ts">
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
-  import { auth, logout } from '$lib/auth.svelte.js';
+  import { auth, logout } from '$lib/auth.svelte';
   import Sidebar from '$lib/components/Sidebar.svelte';
   import Topbar from '$lib/components/Topbar.svelte';
 

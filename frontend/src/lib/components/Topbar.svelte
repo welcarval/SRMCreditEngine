@@ -1,6 +1,6 @@
-<script>
+<script lang="ts">
   import { page } from '$app/state';
-  const labels = { '/dashboard': 'Visão geral', '/fundos': 'Fundos', '/recebiveis': 'Recebíveis' };
+  const labels: Record<string, string> = { '/dashboard': 'Visão geral', '/fundos': 'Fundos', '/recebiveis': 'Recebíveis' };
 </script>
 
 <header class="topbar">
