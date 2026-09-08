@@ -2,10 +2,12 @@ services:
   keycloak:
     image: quay.io/keycloak/keycloak:latest
     container_name: srm-keycloak
-    command: start-dev
+    command: start-dev --import-realm
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: admin
     ports:
       - "8180:8080"
-    restart: unless-stopped
+    volumes:
+      - ./keycloak/srm-credit-engine-realm.json:/opt/keycloak/data/import/srm-credit-engine-realm.json:ro
+    restart: no

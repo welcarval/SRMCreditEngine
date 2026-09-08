@@ -1,0 +1,66 @@
+{
+  "realm": "srm-credit-engine",
+  "enabled": true,
+  "displayName": "SRM Credit Engine",
+  "registrationAllowed": false,
+  "resetPasswordAllowed": true,
+  "rememberMe": true,
+  "clients": [
+    {
+      "clientId": "srm-frontend",
+      "name": "SRM Operator Portal",
+      "enabled": true,
+      "publicClient": true,
+      "protocol": "openid-connect",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": [
+        "http://localhost:5173/auth/callback"
+      ],
+      "webOrigins": [
+        "http://localhost:5173"
+      ],
+      "attributes": {
+        "post.logout.redirect.uris": "http://localhost:5173/login"
+      }
+    }
+  ],
+  "users": [
+    {
+      "username": "srm.admin",
+      "enabled": true,
+      "email": "srm.admin@localhost",
+      "emailVerified": true,
+      "firstName": "SRM",
+      "lastName": "Admin",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "admin123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "default-roles-srm-credit-engine"
+      ]
+    },
+    {
+      "username": "srm.user",
+      "enabled": true,
+      "email": "srm.user@localhost",
+      "emailVerified": true,
+      "firstName": "SRM",
+      "lastName": "User",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "user123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "default-roles-srm-credit-engine"
+      ]
+    }
+  ]
+}
