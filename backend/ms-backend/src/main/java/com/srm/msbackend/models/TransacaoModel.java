@@ -7,7 +7,6 @@ public record TransacaoModel(
         Long id,
         BigDecimal valor,
         LocalDateTime realizadaEm,
-        Long recebivelId,
         Long contaOrigemId,
         Long contaDestinoId
 ) {

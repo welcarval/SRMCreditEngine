@@ -1,15 +1,16 @@
 package com.srm.msbackend.services;
 
 import com.srm.msbackend.entities.Conta;
-import com.srm.msbackend.entities.Recebivel;
+import com.srm.msbackend.entities.StatusTransacao;
 import com.srm.msbackend.entities.Transacao;
 import com.srm.msbackend.models.TransacaoModel;
 import com.srm.msbackend.repositories.ContaRepository;
-import com.srm.msbackend.repositories.RecebivelRepository;
 import com.srm.msbackend.repositories.TransacaoRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -18,14 +19,11 @@ import java.util.Optional;
 public class TransacaoService {
     private final TransacaoRepository transacaoRepository;
     private final ContaRepository contaRepository;
-    private final RecebivelRepository recebivelRepository;
 
     public TransacaoService(TransacaoRepository transacaoRepository,
-                           ContaRepository contaRepository,
-                           RecebivelRepository recebivelRepository) {
+                           ContaRepository contaRepository) {
         this.transacaoRepository = transacaoRepository;
         this.contaRepository = contaRepository;
-        this.recebivelRepository = recebivelRepository;
     }
 
     public List<Transacao> listar() {
@@ -36,6 +34,29 @@ public class TransacaoService {
         return transacaoRepository.findById(id);
     }
 
+    public void executar(Transacao transacao) {
+        transacao.setStatus(StatusTransacao.PENDENTE);
+        try {
+            BigDecimal taxaOrigem = transacao.getContaOrigem().getMoeda().getTaxaCambioDolar();
+            BigDecimal taxaDestino = transacao.getContaDestino().getMoeda().getTaxaCambioDolar();
+            if (taxaOrigem == null || taxaOrigem.signum() <= 0
+                    || taxaDestino == null || taxaDestino.signum() <= 0) {
+                throw new IllegalStateException("As moedas devem possuir taxas de câmbio válidas");
+            }
+
+            BigDecimal valorDestino = transacao.getValor()
+                    .multiply(taxaOrigem)
+                    .divide(taxaDestino, 2, RoundingMode.HALF_UP);
+            transacao.getContaOrigem().removerSaldo(transacao.getValor());
+            transacao.getContaDestino().adicionarSaldo(valorDestino);
+            transacao.setStatus(StatusTransacao.SUCESSO);
+        } catch (RuntimeException exception) {
+            transacao.setStatus(StatusTransacao.FALHA);
+            throw exception;
+        }
+    }
+
+    @Transactional
     public Transacao salvar(TransacaoModel model) {
         Conta contaOrigem = contaRepository.findById(model.contaOrigemId())
                 .orElseThrow(() -> new IllegalArgumentException("Conta de origem não encontrada: " + model.contaOrigemId()));
@@ -43,21 +64,13 @@ public class TransacaoService {
         Conta contaDestino = contaRepository.findById(model.contaDestinoId())
                 .orElseThrow(() -> new IllegalArgumentException("Conta de destino não encontrada: " + model.contaDestinoId()));
 
-        Recebivel recebivel = recebivelRepository.findById(model.recebivelId())
-                .orElseThrow(() -> new IllegalArgumentException("Recebível não encontrado: " + model.recebivelId()));
-
         Transacao transacao = new Transacao();
         transacao.setValor(model.valor());
         transacao.setRealizadaEm(model.realizadaEm() != null ? model.realizadaEm() : LocalDateTime.now());
-        transacao.setRecebivel(recebivel);
         transacao.setContaOrigem(contaOrigem);
         transacao.setContaDestino(contaDestino);
 
-        contaOrigem.setSaldo(contaOrigem.getSaldo().subtract(model.valor()));
-        contaDestino.setSaldo(contaDestino.getSaldo().add(model.valor()));
-
-        contaRepository.save(contaOrigem);
-        contaRepository.save(contaDestino);
+        executar(transacao);
 
         return transacaoRepository.save(transacao);
     }

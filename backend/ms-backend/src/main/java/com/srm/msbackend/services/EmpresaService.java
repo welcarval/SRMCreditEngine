@@ -6,6 +6,7 @@ import com.srm.msbackend.models.EmpresaModel;
 import com.srm.msbackend.repositories.ContaRepository;
 import com.srm.msbackend.repositories.EmpresaRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -20,28 +21,33 @@ public class EmpresaService {
         this.contaRepository = contaRepository;
     }
 
-    public List<Empresa> listar() {
-        return empresaRepository.findAll();
+    @Transactional(readOnly = true)
+    public List<EmpresaModel> listar() {
+        return empresaRepository.findAll().stream().map(this::toModel).toList();
     }
 
-    public Optional<Empresa> buscarPorId(Long id) {
-        return empresaRepository.findById(id);
+    @Transactional(readOnly = true)
+    public Optional<EmpresaModel> buscarPorId(Long id) {
+        return empresaRepository.findById(id).map(this::toModel);
     }
 
-    public Empresa salvar(EmpresaModel model) {
+    @Transactional
+    public EmpresaModel salvar(EmpresaModel model) {
         Conta conta = buscarConta(model.contaId());
-        return empresaRepository.save(new Empresa(model.razaoSocial(), model.cnpj(), conta));
+        return toModel(empresaRepository.save(new Empresa(model.razaoSocial(), model.cnpj(), conta)));
     }
 
-    public Optional<Empresa> atualizar(Long id, EmpresaModel model) {
+    @Transactional
+    public Optional<EmpresaModel> atualizar(Long id, EmpresaModel model) {
         return empresaRepository.findById(id).map(empresa -> {
             empresa.setRazaoSocial(model.razaoSocial());
             empresa.setCnpj(model.cnpj());
             empresa.setConta(buscarConta(model.contaId()));
-            return empresaRepository.save(empresa);
+            return toModel(empresaRepository.save(empresa));
         });
     }
 
+    @Transactional
     public boolean deletar(Long id) {
         if (!empresaRepository.existsById(id)) {
             return false;
@@ -49,6 +55,15 @@ public class EmpresaService {
 
         empresaRepository.deleteById(id);
         return true;
+    }
+
+    private EmpresaModel toModel(Empresa empresa) {
+        return new EmpresaModel(
+                empresa.getId(),
+                empresa.getRazaoSocial(),
+                empresa.getCnpj(),
+                empresa.getConta() == null ? null : empresa.getConta().getId()
+        );
     }
 
     private Conta buscarConta(Long contaId) {

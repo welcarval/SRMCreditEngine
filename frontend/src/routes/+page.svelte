@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { goto } from '$app/navigation';
-  import { onMount } from 'svelte';
+    import {goto} from '$app/navigation';
+    import {onMount} from 'svelte';
 
-  onMount(() => goto('/dashboard'));
+    onMount(() => goto('/dashboard'));
 </script>
 
 <p>Carregando...</p>

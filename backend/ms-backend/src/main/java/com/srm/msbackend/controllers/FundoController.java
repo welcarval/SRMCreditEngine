@@ -1,7 +1,7 @@
 package com.srm.msbackend.controllers;
 
-import com.srm.msbackend.entities.Fundo;
 import com.srm.msbackend.models.FundoModel;
+import com.srm.msbackend.models.RecebivelModel;
 import com.srm.msbackend.services.FundoService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,24 +18,31 @@ public class FundoController {
     }
 
     @GetMapping
-    public List<Fundo> listar() {
+    public List<FundoModel> listar() {
         return fundoService.listar();
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Fundo> buscarPorId(@PathVariable Long id) {
+    public ResponseEntity<FundoModel> buscarPorId(@PathVariable Long id) {
         return fundoService.buscarPorId(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
-    public Fundo criar(@RequestBody FundoModel model) {
+    public FundoModel criar(@RequestBody FundoModel model) {
         return fundoService.salvar(model);
     }
 
+    @PostMapping("/{fundoId}/recebiveis/{recebivelId}")
+    public RecebivelModel adicionarRecebivel(
+            @PathVariable Long fundoId,
+            @PathVariable Long recebivelId) {
+        return fundoService.adicionarRecebivel(fundoId, recebivelId);
+    }
+
     @PutMapping("/{id}")
-    public ResponseEntity<Fundo> atualizar(@PathVariable Long id, @RequestBody FundoModel model) {
+    public ResponseEntity<FundoModel> atualizar(@PathVariable Long id, @RequestBody FundoModel model) {
         return fundoService.atualizar(id, model)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());

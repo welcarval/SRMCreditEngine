@@ -1,6 +1,5 @@
 package com.srm.msbackend.controllers;
 
-import com.srm.msbackend.entities.Moeda;
 import com.srm.msbackend.models.MoedaModel;
 import com.srm.msbackend.services.MoedaService;
 import org.springframework.http.ResponseEntity;
@@ -18,24 +17,24 @@ public class MoedaController {
     }
 
     @GetMapping
-    public List<Moeda> listar() {
+    public List<MoedaModel> listar() {
         return moedaService.listar();
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Moeda> buscarPorId(@PathVariable Long id) {
+    public ResponseEntity<MoedaModel> buscarPorId(@PathVariable Long id) {
         return moedaService.buscarPorId(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
-    public Moeda criar(@RequestBody MoedaModel model) {
+    public MoedaModel criar(@RequestBody MoedaModel model) {
         return moedaService.salvar(model);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Moeda> atualizar(@PathVariable Long id, @RequestBody MoedaModel model) {
+    public ResponseEntity<MoedaModel> atualizar(@PathVariable Long id, @RequestBody MoedaModel model) {
         return moedaService.atualizar(id, model)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());

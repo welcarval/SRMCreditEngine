@@ -10,6 +10,7 @@ import com.srm.msbackend.repositories.FundoRepository;
 import com.srm.msbackend.repositories.RecebivelRepository;
 import com.srm.msbackend.repositories.TipoRecebivelRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -35,16 +36,22 @@ public class RecebivelService {
         this.tipoRecebivelRepository = tipoRecebivelRepository;
     }
 
-    public List<Recebivel> listar() {
-        return recebivelRepository.findAll();
+    @Transactional(readOnly = true)
+    public List<RecebivelModel> listar() {
+        return recebivelRepository.findAll().stream()
+                .map(this::toModel)
+                .toList();
     }
 
-    public Optional<Recebivel> buscarPorId(Long id) {
-        return recebivelRepository.findById(id);
+    @Transactional(readOnly = true)
+    public Optional<RecebivelModel> buscarPorId(Long id) {
+        return recebivelRepository.findById(id)
+                .map(this::toModel);
     }
 
-    public Recebivel salvar(RecebivelModel model) {
-        Fundo fundo = fundoRepository.findById(model.fundoId())
+    @Transactional
+    public RecebivelModel salvar(RecebivelModel model) {
+        Fundo fundo = model.fundoId() == null ? null : fundoRepository.findById(model.fundoId())
                 .orElseThrow(() -> new IllegalArgumentException("Fundo não encontrado: " + model.fundoId()));
 
         Empresa empresa = empresaRepository.findById(model.empresaId())
@@ -62,16 +69,17 @@ public class RecebivelService {
 
         recebivel.setValorPresente(calcularValorPresente(
                 model.valorFace(),
-                fundo.getTaxaBase(),
+                fundo == null ? model.taxaBase() : fundo.getTaxaBase(),
                 tipo.getSpread(),
                 calcularPrazoEmAnos(model.dataVencimento())
         ));
-        return recebivelRepository.save(recebivel);
+        return toModel(recebivelRepository.save(recebivel));
     }
 
-    public Optional<Recebivel> atualizar(Long id, RecebivelModel model) {
+    @Transactional
+    public Optional<RecebivelModel> atualizar(Long id, RecebivelModel model) {
         return recebivelRepository.findById(id).map(recebivel -> {
-            Fundo fundo = fundoRepository.findById(model.fundoId())
+            Fundo fundo = model.fundoId() == null ? null : fundoRepository.findById(model.fundoId())
                     .orElseThrow(() -> new IllegalArgumentException("Fundo não encontrado: " + model.fundoId()));
 
             Empresa empresa = empresaRepository.findById(model.empresaId())
@@ -88,14 +96,15 @@ public class RecebivelService {
 
             recebivel.setValorPresente(calcularValorPresente(
                     model.valorFace(),
-                    fundo.getTaxaBase(),
+                    fundo == null ? model.taxaBase() : fundo.getTaxaBase(),
                     tipo.getSpread(),
                     calcularPrazoEmAnos(model.dataVencimento())
             ));
-            return recebivelRepository.save(recebivel);
+            return toModel(recebivelRepository.save(recebivel));
         });
     }
 
+    @Transactional
     public boolean deletar(Long id) {
         if (!recebivelRepository.existsById(id)) {
             return false;
@@ -103,6 +112,21 @@ public class RecebivelService {
 
         recebivelRepository.deleteById(id);
         return true;
+    }
+
+    private RecebivelModel toModel(Recebivel recebivel) {
+        return new RecebivelModel(
+                recebivel.getId(),
+                recebivel.getValorFace(),
+                recebivel.getValorPresente(),
+                recebivel.getDataVencimento(),
+                recebivel.getFundo() == null ? null : recebivel.getFundo().getId(),
+                recebivel.getTipo().getId(),
+                recebivel.getEmpresa().getId(),
+                calcularPrazoEmAnos(recebivel.getDataVencimento()),
+                recebivel.getTipo().getSpread(),
+                recebivel.getFundo() == null ? null : recebivel.getFundo().getTaxaBase()
+        );
     }
 
     public BigDecimal calcularValorPresente(BigDecimal valorFace, BigDecimal taxaBase, BigDecimal spread, BigDecimal prazo) {

@@ -1,6 +1,5 @@
 package com.srm.msbackend.controllers;
 
-import com.srm.msbackend.entities.Recebivel;
 import com.srm.msbackend.models.RecebivelModel;
 import com.srm.msbackend.services.RecebivelService;
 import org.springframework.http.ResponseEntity;
@@ -18,24 +17,24 @@ public class RecebivelController {
     }
 
     @GetMapping
-    public List<Recebivel> listar() {
+    public List<RecebivelModel> listar() {
         return recebivelService.listar();
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Recebivel> buscarPorId(@PathVariable Long id) {
+    public ResponseEntity<RecebivelModel> buscarPorId(@PathVariable Long id) {
         return recebivelService.buscarPorId(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
-    public Recebivel criar(@RequestBody RecebivelModel model) {
+    public RecebivelModel criar(@RequestBody RecebivelModel model) {
         return recebivelService.salvar(model);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Recebivel> atualizar(@PathVariable Long id, @RequestBody RecebivelModel model) {
+    public ResponseEntity<RecebivelModel> atualizar(@PathVariable Long id, @RequestBody RecebivelModel model) {
         return recebivelService.atualizar(id, model)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());

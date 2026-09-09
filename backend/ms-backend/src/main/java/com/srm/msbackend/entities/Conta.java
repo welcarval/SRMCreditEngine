@@ -70,8 +70,23 @@ public class Conta {
         return saldo;
     }
 
-    public void setSaldo(BigDecimal saldo) {
-        this.saldo = saldo != null ? saldo : BigDecimal.ZERO;
+    public void adicionarSaldo(BigDecimal valor) {
+        validarValorMovimentacao(valor);
+        saldo = saldo.add(valor);
+    }
+
+    public void removerSaldo(BigDecimal valor) {
+        validarValorMovimentacao(valor);
+        if (saldo.compareTo(valor) < 0) {
+            throw new IllegalArgumentException("Saldo insuficiente para realizar a operação");
+        }
+        saldo = saldo.subtract(valor);
+    }
+
+    private void validarValorMovimentacao(BigDecimal valor) {
+        if (valor == null || valor.signum() <= 0) {
+            throw new IllegalArgumentException("O valor da movimentação deve ser maior que zero");
+        }
     }
 
     public Moeda getMoeda() {

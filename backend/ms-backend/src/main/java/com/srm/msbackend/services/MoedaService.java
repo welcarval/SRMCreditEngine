@@ -4,6 +4,7 @@ import com.srm.msbackend.entities.Moeda;
 import com.srm.msbackend.models.MoedaModel;
 import com.srm.msbackend.repositories.MoedaRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -16,31 +17,36 @@ public class MoedaService {
         this.moedaRepository = moedaRepository;
     }
 
-    public List<Moeda> listar() {
-        return moedaRepository.findAll();
+    @Transactional(readOnly = true)
+    public List<MoedaModel> listar() {
+        return moedaRepository.findAll().stream().map(this::toModel).toList();
     }
 
-    public Optional<Moeda> buscarPorId(Long id) {
-        return moedaRepository.findById(id);
+    @Transactional(readOnly = true)
+    public Optional<MoedaModel> buscarPorId(Long id) {
+        return moedaRepository.findById(id).map(this::toModel);
     }
 
-    public Moeda salvar(MoedaModel model) {
-        return moedaRepository.save(new Moeda(
+    @Transactional
+    public MoedaModel salvar(MoedaModel model) {
+        return toModel(moedaRepository.save(new Moeda(
                 model.codigo(),
                 model.nome(),
                 model.taxaCambioDolar()
-        ));
+        )));
     }
 
-    public Optional<Moeda> atualizar(Long id, MoedaModel model) {
+    @Transactional
+    public Optional<MoedaModel> atualizar(Long id, MoedaModel model) {
         return moedaRepository.findById(id).map(moeda -> {
             moeda.setCodigo(model.codigo());
             moeda.setNome(model.nome());
             moeda.setTaxaCambioDolar(model.taxaCambioDolar());
-            return moedaRepository.save(moeda);
+            return toModel(moedaRepository.save(moeda));
         });
     }
 
+    @Transactional
     public boolean deletar(Long id) {
         if (!moedaRepository.existsById(id)) {
             return false;
@@ -48,5 +54,14 @@ public class MoedaService {
 
         moedaRepository.deleteById(id);
         return true;
+    }
+
+    private MoedaModel toModel(Moeda moeda) {
+        return new MoedaModel(
+                moeda.getId(),
+                moeda.getCodigo(),
+                moeda.getNome(),
+                moeda.getTaxaCambioDolar()
+        );
     }
 }

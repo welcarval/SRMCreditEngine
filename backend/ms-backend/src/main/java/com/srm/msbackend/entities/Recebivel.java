@@ -4,9 +4,6 @@ import jakarta.persistence.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.HashSet;
-import java.util.Set;
-
 @Entity
 @Table(name = "recebivel")
 public class Recebivel {
@@ -22,8 +19,8 @@ public class Recebivel {
 
     private LocalDate dataVencimento;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "fundo_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "fundo_id")
     private Fundo fundo;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
@@ -33,9 +30,6 @@ public class Recebivel {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "empresa_id", nullable = false)
     private Empresa empresa;
-
-    @OneToMany(mappedBy = "recebivel", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<Transacao> transacoes = new HashSet<>();
 
     public Recebivel() {
     }
@@ -102,7 +96,4 @@ public class Recebivel {
         this.empresa = empresa;
     }
 
-    public Set<Transacao> getTransacoes() {
-        return transacoes;
-    }
 }

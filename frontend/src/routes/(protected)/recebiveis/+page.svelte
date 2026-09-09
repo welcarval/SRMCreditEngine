@@ -1,11 +1,12 @@
 <script lang="ts">
     import {onMount} from 'svelte';
-    import { api } from '$lib/api';
-    import type { Company, Fund, Receivable } from '$lib/types';
+    import {api} from '$lib/api';
+    import type {Company, Fund, Receivable, ReceivableType} from '$lib/types';
     import ReceivableModal from '$lib/components/ReceivableModal.svelte';
 
     let funds = $state<Fund[]>([]);
     let companies = $state<Company[]>([]);
+    let receivableTypes = $state<ReceivableType[]>([]);
     let receivables = $state<Receivable[]>([]);
     let query = $state('');
     let activeTab = $state('todos');
@@ -25,11 +26,14 @@
     }));
     onMount(async () => {
         try {
-            [funds, receivables, companies] = await Promise.all([api.funds(), api.receivables(), api.companies()]);
+            [funds, receivables, companies, receivableTypes] = await Promise.all([
+                api.funds(), api.receivables(), api.companies(), api.receivableTypes()
+            ]);
         } catch (err: unknown) {
             error = err instanceof Error ? err.message : 'Não foi possível carregar os recebíveis.';
         }
     });
+
     async function remove(id: number) {
         if (!confirm('Excluir este recebível?')) return;
         try {
@@ -105,6 +109,6 @@
     </div>
 </section>
 {#if selected !== undefined}
-    <ReceivableModal item={selected} {funds} {companies} onclose={() => selected = undefined}
+    <ReceivableModal item={selected} {funds} {companies} {receivableTypes} onclose={() => selected = undefined}
                      onsaved={(saved: Receivable) => { receivables = selected ? receivables.map((item) => item.id === saved.id ? saved : item) : [...receivables, saved]; selected = undefined; notice = 'Recebível salvo com sucesso.'; }}/>
 {/if}

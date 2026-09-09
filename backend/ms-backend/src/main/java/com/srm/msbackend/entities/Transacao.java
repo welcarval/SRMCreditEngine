@@ -18,9 +18,9 @@ public class Transacao {
     @Column(nullable = false)
     private LocalDateTime realizadaEm;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "recebivel_id", nullable = false)
-    private Recebivel recebivel;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private StatusTransacao status = StatusTransacao.PENDENTE;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "conta_origem_id", nullable = false)
@@ -33,11 +33,10 @@ public class Transacao {
     public Transacao() {
     }
 
-    public Transacao(BigDecimal valor, LocalDateTime realizadaEm, Recebivel recebivel,
+    public Transacao(BigDecimal valor, LocalDateTime realizadaEm,
                      Conta contaOrigem, Conta contaDestino) {
         this.valor = valor;
         this.realizadaEm = realizadaEm;
-        this.recebivel = recebivel;
         this.contaOrigem = contaOrigem;
         this.contaDestino = contaDestino;
     }
@@ -62,12 +61,12 @@ public class Transacao {
         this.realizadaEm = realizadaEm;
     }
 
-    public Recebivel getRecebivel() {
-        return recebivel;
+    public StatusTransacao getStatus() {
+        return status;
     }
 
-    public void setRecebivel(Recebivel recebivel) {
-        this.recebivel = recebivel;
+    public void setStatus(StatusTransacao status) {
+        this.status = status;
     }
 
     public Conta getContaOrigem() {
@@ -85,4 +84,5 @@ public class Transacao {
     public void setContaDestino(Conta contaDestino) {
         this.contaDestino = contaDestino;
     }
+
 }
