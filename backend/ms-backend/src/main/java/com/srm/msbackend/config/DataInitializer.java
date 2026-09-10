@@ -20,7 +20,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.IntStream;
@@ -109,16 +108,9 @@ public class DataInitializer {
         TipoRecebivel tipo = tipos.get((index - 1) % tipos.size());
         BigDecimal valorFace = BigDecimal.valueOf(10_000L + (index * 1_250L))
                 .setScale(2);
+        BigDecimal taxaBase = new BigDecimal("0.070000");
         LocalDate vencimento = LocalDate.now().plusDays(30L + ((long) index * 15L));
-        BigDecimal prazoEmAnos = BigDecimal.valueOf(30L + ((long) index * 15L))
-                .divide(BigDecimal.valueOf(365), 10, RoundingMode.HALF_UP);
-        BigDecimal taxaTotal = fundo.getTaxaBase().add(tipo.getSpread());
-        BigDecimal valorPresente = valorFace.divide(
-                BigDecimal.valueOf(Math.pow(BigDecimal.ONE.add(taxaTotal).doubleValue(),
-                        prazoEmAnos.doubleValue())),
-                2,
-                RoundingMode.HALF_UP);
 
-        return new Recebivel(valorPresente, valorFace, vencimento, null, tipo, empresa);
+        return new Recebivel(null, valorFace, vencimento, null, tipo, empresa, taxaBase);
     }
 }

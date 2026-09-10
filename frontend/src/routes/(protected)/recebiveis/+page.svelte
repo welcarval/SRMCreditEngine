@@ -14,6 +14,9 @@
     let error = $state('');
     let notice = $state('');
     let isAdmin = $state(false);
+    type SortKey = 'id' | 'fund' | 'company' | 'dueDate' | 'faceValue' | 'baseRate';
+    let sortKey = $state<SortKey>('id');
+    let sortDirection = $state<'asc' | 'desc'>('asc');
     const currency = (value: number | null | undefined) => new Intl.NumberFormat('pt-BR', {
         style: 'currency',
         currency: 'BRL'
@@ -21,13 +24,43 @@
     const days = (value: string | null | undefined) => value ? Math.ceil((new Date(`${value}T00:00:00`).getTime() - Date.now()) / 86400000) : 0;
     const fundName = (item: Receivable) => item?.fundo?.nome || funds.find((fund) => String(fund.id) === String(item.fundoId))?.nome || '—';
     const companyName = (item: Receivable) => item?.empresa?.razaoSocial || companies.find((company) => String(company.id) === String(item.empresaId))?.razaoSocial || '—';
-    let filtered = $derived(receivables.filter((item) => {
-        const matchesTab = activeTab === 'todos'
-            || (activeTab === 'sem-fundo' && !item.fundoId)
-            || (activeTab === 'vencendo' && days(item.dataVencimento) <= 30)
-            || (activeTab === 'atrasados' && days(item.dataVencimento) < 0);
-        return matchesTab && `${item.id} ${fundName(item)} ${companyName(item)}`.toLowerCase().includes(query.toLowerCase());
-    }));
+    let filtered = $derived.by(() => {
+        const result = receivables.filter((item) => {
+            const matchesTab = activeTab === 'todos'
+                || (activeTab === 'disponiveis' && !item.fundoId)
+                || (activeTab === 'vencendo' && days(item.dataVencimento) <= 30)
+                || (activeTab === 'atrasados' && days(item.dataVencimento) < 0);
+            return matchesTab && `${item.id} ${fundName(item)} ${companyName(item)}`.toLowerCase().includes(query.toLowerCase());
+        });
+        return result.sort((left, right) => {
+            const values: Record<SortKey, [string | number, string | number]> = {
+                id: [left.id, right.id],
+                fund: [fundName(left), fundName(right)],
+                company: [companyName(left), companyName(right)],
+                dueDate: [left.dataVencimento || '', right.dataVencimento || ''],
+                faceValue: [Number(left.valorFace || 0), Number(right.valorFace || 0)],
+                baseRate: [Number(left.taxaBase || 0), Number(right.taxaBase || 0)]
+            };
+            const [leftValue, rightValue] = values[sortKey];
+            const comparison = typeof leftValue === 'string' && typeof rightValue === 'string'
+                ? leftValue.localeCompare(rightValue, 'pt-BR')
+                : Number(leftValue) - Number(rightValue);
+            return sortDirection === 'asc' ? comparison : -comparison;
+        });
+    });
+
+    function sortBy(key: SortKey) {
+        if (sortKey === key) {
+            sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+        } else {
+            sortKey = key;
+            sortDirection = 'asc';
+        }
+    }
+
+    function sortIndicator(key: SortKey) {
+        return sortKey === key ? (sortDirection === 'asc' ? '↑' : '↓') : '↕';
+    }
     onMount(async () => {
         try {
             let profile: UserAccess;
@@ -63,14 +96,14 @@
     <div><p class="eyebrow">ATIVOS DE CRÉDITO</p>
         <h1>Recebíveis</h1>
         <p class="muted">Controle, análise e acompanhamento dos direitos creditórios.</p></div>
-    {#if isAdmin}<button class="button primary" onclick={() => selected = null}>＋ Novo recebível</button>{/if}
+    <button class="button primary" onclick={() => selected = null}>＋ Novo recebível</button>
 </div>
 <div class="toolbar">
     <div class="search"><span>⌕</span><input bind:value={query} placeholder="Buscar por fundo, empresa ou ID"/></div>
     <div class="tabs">
         <button class:active={activeTab === 'todos'} onclick={() => activeTab = 'todos'}>Todos
             <b>{receivables.length}</b></button>
-        <button class:active={activeTab === 'sem-fundo'} onclick={() => activeTab = 'sem-fundo'}>Sem fundo</button>
+        <button class:active={activeTab === 'disponiveis'} onclick={() => activeTab = 'disponiveis'}>Disponíveis para compra</button>
         <button class:active={activeTab === 'vencendo'} onclick={() => activeTab = 'vencendo'}>Vencendo</button>
         <button class:active={activeTab === 'atrasados'} onclick={() => activeTab = 'atrasados'}>Em atraso</button>
     </div>
@@ -80,12 +113,12 @@
         <table>
             <thead>
             <tr>
-                <th>Identificação</th>
-                <th>Fundo</th>
-                <th>Empresa cedente</th>
-                <th>Vencimento</th>
-                <th>Valor de face</th>
-                <th>Valor presente</th>
+                <th><button class="sort-button" onclick={() => sortBy('id')}>Identificação {sortIndicator('id')}</button></th>
+                <th><button class="sort-button" onclick={() => sortBy('fund')}>Fundo {sortIndicator('fund')}</button></th>
+                <th><button class="sort-button" onclick={() => sortBy('company')}>Empresa cedente {sortIndicator('company')}</button></th>
+                <th><button class="sort-button" onclick={() => sortBy('dueDate')}>Vencimento {sortIndicator('dueDate')}</button></th>
+                <th><button class="sort-button" onclick={() => sortBy('faceValue')}>Valor de face {sortIndicator('faceValue')}</button></th>
+                <th><button class="sort-button" onclick={() => sortBy('baseRate')}>Taxa base {sortIndicator('baseRate')}</button></th>
                 <th></th>
             </tr>
             </thead>
@@ -97,7 +130,7 @@
                     <td>{companyName(item)}</td>
                     <td class:date-warning={days(item.dataVencimento) <= 30}>{new Intl.DateTimeFormat('pt-BR').format(new Date(`${item.dataVencimento}T00:00:00`))}</td>
                     <td>{currency(item.valorFace)}</td>
-                    <td><strong>{currency(item.valorPresente)}</strong></td>
+                    <td>{(Number(item.taxaBase || 0) * 100).toFixed(2)}%</td>
                     <td class="actions">
                         <a href={`/recebiveis/${item.id}`}>Ver</a>
                         {#if isAdmin}<button onclick={() => selected = item}>Editar</button>
@@ -117,6 +150,6 @@
     </div>
 </section>
 {#if selected !== undefined}
-    <ReceivableModal item={selected} {funds} {companies} {receivableTypes} onclose={() => selected = undefined}
+    <ReceivableModal item={selected} {funds} {companies} {receivableTypes} {isAdmin} onclose={() => selected = undefined}
                      onsaved={(saved: Receivable) => { receivables = selected ? receivables.map((item) => item.id === saved.id ? saved : item) : [...receivables, saved]; selected = undefined; notice = 'Recebível salvo com sucesso.'; }}/>
 {/if}

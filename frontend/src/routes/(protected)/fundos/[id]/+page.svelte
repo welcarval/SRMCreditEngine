@@ -78,7 +78,7 @@
         {/if}
     </section>
     {#if selected !== undefined}
-        <ReceivableModal item={selected} {funds} {companies} {receivableTypes} fundId={fund.id}
+        <ReceivableModal item={selected} {funds} {companies} {receivableTypes} fundId={fund.id} allowFundSelection
                          onclose={() => selected = undefined}
                          onsaved={(saved: Receivable) => { receivables = [...receivables, saved]; selected = undefined; notice = 'Recebível comprado com sucesso.'; }}/>
     {/if}

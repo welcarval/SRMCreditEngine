@@ -58,9 +58,10 @@ class RecebivelControllerTest {
 
         mvc.perform(auth(get("/api/recebiveis"))).andExpect(status().isOk());
         mvc.perform(auth(get("/api/recebiveis/1"))).andExpect(status().isOk());
-        mvc.perform(auth(post("/api/recebiveis").contentType("application/json").content("{}")))
+        String payload = "{\"valorFace\":10,\"tipoId\":2,\"empresaId\":3,\"taxaBase\":1}";
+        mvc.perform(auth(post("/api/recebiveis").contentType("application/json").content(payload)))
                 .andExpect(status().isOk());
-        mvc.perform(auth(put("/api/recebiveis/1").contentType("application/json").content("{}")))
+        mvc.perform(auth(put("/api/recebiveis/1").contentType("application/json").content(payload)))
                 .andExpect(status().isOk());
         mvc.perform(auth(delete("/api/recebiveis/1"))).andExpect(status().isNoContent());
 
@@ -69,13 +70,30 @@ class RecebivelControllerTest {
         when(authorizationService.usuarioAtual(nullable(Authentication.class))).thenReturn(operador);
         when(service.listarParaUsuario(null)).thenReturn(List.of());
         mvc.perform(auth(get("/api/recebiveis"))).andExpect(status().isOk());
+        mvc.perform(auth(get("/api/recebiveis/1"))).andExpect(status().isOk());
+        mvc.perform(auth(post("/api/recebiveis").contentType("application/json").content(payload)))
+                .andExpect(status().isOk());
     }
 
     @Test
     void bloqueiaOperacoesAdministrativas() {
         when(authorizationService.ehAdministrador(authentication)).thenReturn(false);
         RecebivelController controller = new RecebivelController(service, authorizationService);
-        assertThatThrownBy(() -> controller.buscarPorId(1L, authentication))
+        assertThatThrownBy(() -> controller.atualizar(1L, model, authentication))
                 .isInstanceOf(AccessDeniedException.class);
+        assertThatThrownBy(() -> controller.deletar(1L, authentication))
+                .isInstanceOf(AccessDeniedException.class);
+    }
+
+    @Test
+    void rejeitaTaxaBaseForaDoIntervalo() throws Exception {
+        mvc.perform(auth(post("/api/recebiveis")
+                        .contentType("application/json")
+                        .content("{\"valorFace\":10,\"tipoId\":2,\"empresaId\":3,\"taxaBase\":-1}")))
+                .andExpect(status().isBadRequest());
+        mvc.perform(auth(post("/api/recebiveis")
+                        .contentType("application/json")
+                        .content("{\"valorFace\":10,\"tipoId\":2,\"empresaId\":3,\"taxaBase\":101}")))
+                .andExpect(status().isBadRequest());
     }
 }

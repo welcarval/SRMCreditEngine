@@ -35,7 +35,7 @@ class RecebivelServiceTest {
     @Test void listaBuscaSalvaAtualizaEExclui() {
         Recebivel existente = recebivel(fundo);
         RecebivelModel model = new RecebivelModel(1L, new BigDecimal("200"), null,
-                LocalDate.now().plusDays(30), 1L, 2L, 3L, null, null, null);
+                LocalDate.now().plusDays(30), 1L, 2L, 3L, null, null, new BigDecimal("0.05"));
         when(repository.findAll()).thenReturn(List.of(existente));
         when(repository.findById(1L)).thenReturn(Optional.of(existente));
         when(fundoRepository.findById(1L)).thenReturn(Optional.of(fundo));
@@ -69,10 +69,15 @@ class RecebivelServiceTest {
         assertThat(service.calcularValorPresente(null, BigDecimal.ONE, BigDecimal.ONE, BigDecimal.ONE))
                 .isEqualByComparingTo(BigDecimal.ZERO);
         assertThat(service.calcularValorPresente(BigDecimal.TEN, null, null, null)).isEqualByComparingTo("10");
+        assertThat(service.calcularValorPresente(
+                new BigDecimal("100"), new BigDecimal("0.10"),
+                new BigDecimal("0.02"), new BigDecimal("0.03"), BigDecimal.ONE))
+                .isEqualByComparingTo("86.96");
         assertThat(service.calcularPrazoEmAnos(null)).isEqualByComparingTo(BigDecimal.ONE);
         assertThat(service.calcularPrazoEmAnos(LocalDate.now().minusDays(1))).isEqualByComparingTo(BigDecimal.ZERO);
 
-        RecebivelModel model = new RecebivelModel(null, BigDecimal.TEN, null, LocalDate.now(), 1L, 2L, 3L, null, null, null);
+        RecebivelModel model = new RecebivelModel(null, BigDecimal.TEN, null,
+                LocalDate.now(), 1L, 2L, 3L, null, null, new BigDecimal("0.05"));
         when(fundoRepository.findById(1L)).thenReturn(Optional.empty());
         assertThatThrownBy(() -> service.salvar(model))
                 .isInstanceOf(IllegalArgumentException.class);
@@ -82,5 +87,11 @@ class RecebivelServiceTest {
         when(empresaRepository.findById(3L)).thenReturn(Optional.empty());
         assertThatThrownBy(() -> service.salvar(semFundo))
                 .isInstanceOf(IllegalArgumentException.class);
+
+        RecebivelModel semTaxaBase = new RecebivelModel(null, BigDecimal.TEN, null,
+                LocalDate.now(), null, 2L, 3L, null, null, null);
+        assertThatThrownBy(() -> service.salvar(semTaxaBase))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("taxa base");
     }
 }

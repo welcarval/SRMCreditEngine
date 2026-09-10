@@ -14,12 +14,19 @@
     const currency = (value: number | null | undefined) => new Intl.NumberFormat('pt-BR', {
         style: 'currency', currency: 'BRL'
     }).format(Number(value || 0));
-    const discount = $derived(receivable
-        ? Math.max(Number(receivable.valorFace || 0) - Number(receivable.valorPresente || 0), 0)
-        : 0);
-    const discountRate = $derived(receivable && Number(receivable.valorFace)
-        ? discount / Number(receivable.valorFace) : 0);
     const selectedFund = $derived(funds.find((fund) => fund.id === selectedFundId) ?? null);
+    const presentValue = $derived(receivable && receivable.fundoId
+        ? Number(receivable.valorPresente || 0)
+        : receivable && selectedFund
+            ? Number(receivable.valorFace || 0) / Math.pow(
+                1 + Number(selectedFund.taxaBase || 0) + Number(receivable.spread || 0),
+                Math.max((new Date(`${receivable.dataVencimento}T00:00:00`).getTime() - Date.now()) / 86400000 / 365, 0))
+            : null);
+    const discount = $derived(presentValue === null || !receivable
+        ? null
+        : Math.max(Number(receivable.valorFace || 0) - presentValue, 0));
+    const discountRate = $derived(discount === null || !receivable || !Number(receivable.valorFace)
+        ? null : discount / Number(receivable.valorFace));
 
     onMount(async () => {
         try {
@@ -64,8 +71,8 @@
         </div>
     </div>
     <div class="metric-grid">
-        <div class="metric-card"><div class="metric-icon blue">◈</div><div><span>Valor presente</span><strong>{currency(receivable.valorPresente)}</strong><small>valor de aquisição</small></div></div>
-        <div class="metric-card"><div class="metric-icon orange">−</div><div><span>Deságio</span><strong>{currency(discount)}</strong><small>{(discountRate * 100).toFixed(2)}% do valor de face</small></div></div>
+        <div class="metric-card"><div class="metric-icon blue">◈</div><div><span>Valor presente</span><strong>{presentValue === null ? '—' : currency(presentValue)}</strong><small>{receivable.fundoId ? 'valor de aquisição' : 'estimado para o fundo selecionado'}</small></div></div>
+        <div class="metric-card"><div class="metric-icon orange">−</div><div><span>Deságio</span><strong>{discount === null ? '—' : currency(discount)}</strong><small>{discountRate === null ? 'selecione um fundo' : `${(discountRate * 100).toFixed(2)}% do valor de face`}</small></div></div>
         {#if selectedFund}<div class="metric-card"><div class="metric-icon green">$</div><div><span>Saldo do fundo</span><strong>{currency(selectedFund.saldo)}</strong><small>{selectedFund.nome}</small></div></div>{/if}
     </div>
     <section class="panel">

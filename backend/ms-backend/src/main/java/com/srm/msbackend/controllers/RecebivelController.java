@@ -7,6 +7,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
+import jakarta.validation.Valid;
 
 import java.util.List;
 
@@ -31,20 +33,19 @@ public class RecebivelController {
 
     @GetMapping("/{id}")
     public ResponseEntity<RecebivelModel> buscarPorId(@PathVariable Long id, Authentication authentication) {
-        exigirAdministrador(authentication);
         return recebivelService.buscarPorId(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
-    public RecebivelModel criar(@RequestBody RecebivelModel model, Authentication authentication) {
-        exigirAdministrador(authentication);
+    @PreAuthorize("isAuthenticated()")
+    public RecebivelModel criar(@Valid @RequestBody RecebivelModel model, Authentication authentication) {
         return recebivelService.salvar(model);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<RecebivelModel> atualizar(@PathVariable Long id, @RequestBody RecebivelModel model,
+    public ResponseEntity<RecebivelModel> atualizar(@PathVariable Long id, @Valid @RequestBody RecebivelModel model,
                                                     Authentication authentication) {
         exigirAdministrador(authentication);
         return recebivelService.atualizar(id, model)

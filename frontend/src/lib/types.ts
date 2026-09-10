@@ -2,7 +2,7 @@ export interface Fund {
     id: number;
     nome: string;
     cnpj?: string | null;
-    taxaBase?: number | null;
+    taxaBase: number;
     contaId?: number | null;
     saldo?: number | null;
     conta?: {
@@ -32,7 +32,7 @@ export interface Receivable {
     empresaId?: number | null;
     prazo?: number | null;
     spread?: number | null;
-    taxaBase?: number | null;
+    taxaBase: number;
     fundo?: Fund | null;
     empresa?: Company | null;
     tipo?: {
@@ -52,13 +52,13 @@ export interface FundPayload {
 export interface ReceivablePayload {
     id?: number;
     valorFace: number;
-    valorPresente: number;
+    valorPresente?: number | null;
     dataVencimento: string;
-    fundoId: number;
+    fundoId: number | null;
     tipoId: number;
     empresaId: number;
-    prazo: number;
-    spread: number;
+    prazo?: number | null;
+    spread?: number | null;
     taxaBase: number;
 }
 

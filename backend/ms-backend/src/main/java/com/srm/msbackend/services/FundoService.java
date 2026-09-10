@@ -109,6 +109,12 @@ public class FundoService {
             throw new IllegalStateException("A empresa não possui conta para receber a compra");
         }
 
+        recebivel.setValorPresente(calcularValorPresente(
+                recebivel.getValorFace(),
+                recebivel.getTaxaBase(),
+                recebivel.getTipo().getSpread(),
+                fundo.getTaxaBase(),
+                calcularPrazoEmAnos(recebivel.getDataVencimento())));
         recebivel.setFundo(fundo);
 
         Transacao transacao = new Transacao(
@@ -179,8 +185,21 @@ public class FundoService {
                 recebivel.getEmpresa().getId(),
                 calcularPrazoEmAnos(recebivel.getDataVencimento()),
                 recebivel.getTipo().getSpread(),
-                recebivel.getFundo() == null ? null : recebivel.getFundo().getTaxaBase()
+                recebivel.getTaxaBase()
         );
+    }
+
+    private BigDecimal calcularValorPresente(BigDecimal valorFace,
+                                             BigDecimal taxaBaseRecebivel,
+                                             BigDecimal spread,
+                                             BigDecimal taxaBaseFundo,
+                                             BigDecimal prazoEmAnos) {
+        BigDecimal taxa = BigDecimal.ONE
+                .add(taxaBaseRecebivel)
+                .add(spread)
+                .add(taxaBaseFundo);
+        double valor = valorFace.doubleValue() / Math.pow(taxa.doubleValue(), prazoEmAnos.doubleValue());
+        return BigDecimal.valueOf(valor).setScale(2, RoundingMode.HALF_UP);
     }
 
     private BigDecimal calcularPrazoEmAnos(LocalDate dataVencimento) {

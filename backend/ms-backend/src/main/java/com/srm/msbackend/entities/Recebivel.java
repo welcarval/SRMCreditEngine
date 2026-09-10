@@ -11,11 +11,14 @@ public class Recebivel {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, precision = 19, scale = 2)
+    @Column(precision = 19, scale = 2)
     private BigDecimal valorPresente;
 
     @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal valorFace;
+
+    @Column(nullable = false, precision = 19, scale = 6)
+    private BigDecimal taxaBase;
 
     private LocalDate dataVencimento;
 
@@ -36,12 +39,18 @@ public class Recebivel {
 
     public Recebivel(BigDecimal valorPresente, BigDecimal valorFace, LocalDate dataVencimento, Fundo fundo,
                      TipoRecebivel tipo, Empresa empresa) {
+        this(valorPresente, valorFace, dataVencimento, fundo, tipo, empresa, BigDecimal.ZERO);
+    }
+
+    public Recebivel(BigDecimal valorPresente, BigDecimal valorFace, LocalDate dataVencimento, Fundo fundo,
+                     TipoRecebivel tipo, Empresa empresa, BigDecimal taxaBase) {
         this.valorPresente = valorPresente;
         this.valorFace = valorFace;
         this.dataVencimento = dataVencimento;
         this.fundo = fundo;
         this.tipo = tipo;
         this.empresa = empresa;
+        this.taxaBase = taxaBase;
     }
 
     public Long getId() {
@@ -62,6 +71,14 @@ public class Recebivel {
 
     public void setValorFace(BigDecimal valorFace) {
         this.valorFace = valorFace;
+    }
+
+    public BigDecimal getTaxaBase() {
+        return taxaBase;
+    }
+
+    public void setTaxaBase(BigDecimal taxaBase) {
+        this.taxaBase = taxaBase;
     }
 
     public LocalDate getDataVencimento() {

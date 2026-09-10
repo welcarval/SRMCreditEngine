@@ -64,6 +64,7 @@ public class RecebivelService {
 
     @Transactional
     public RecebivelModel salvar(RecebivelModel model) {
+        validarTaxaBase(model);
         Fundo fundo = model.fundoId() == null ? null : fundoRepository.findById(model.fundoId())
                 .orElseThrow(() -> new IllegalArgumentException("Fundo não encontrado: " + model.fundoId()));
 
@@ -75,23 +76,22 @@ public class RecebivelService {
 
         Recebivel recebivel = new Recebivel();
         recebivel.setValorFace(model.valorFace());
+        recebivel.setTaxaBase(model.taxaBase());
         recebivel.setDataVencimento(model.dataVencimento());
         recebivel.setFundo(fundo);
         recebivel.setEmpresa(empresa);
         recebivel.setTipo(tipo);
 
-        recebivel.setValorPresente(calcularValorPresente(
-                model.valorFace(),
-                fundo == null ? model.taxaBase() : fundo.getTaxaBase(),
-                tipo.getSpread(),
-                calcularPrazoEmAnos(model.dataVencimento())
-        ));
+        recebivel.setValorPresente(fundo == null ? null : calcularValorPresente(
+                model.valorFace(), model.taxaBase(), tipo.getSpread(), fundo.getTaxaBase(),
+                calcularPrazoEmAnos(model.dataVencimento())));
         return toModel(recebivelRepository.save(recebivel));
     }
 
     @Transactional
     public Optional<RecebivelModel> atualizar(Long id, RecebivelModel model) {
         return recebivelRepository.findById(id).map(recebivel -> {
+            validarTaxaBase(model);
             Fundo fundo = model.fundoId() == null ? null : fundoRepository.findById(model.fundoId())
                     .orElseThrow(() -> new IllegalArgumentException("Fundo não encontrado: " + model.fundoId()));
 
@@ -102,17 +102,15 @@ public class RecebivelService {
                     .orElseThrow(() -> new IllegalArgumentException("Tipo de recebível não encontrado: " + model.tipoId()));
 
             recebivel.setValorFace(model.valorFace());
+            recebivel.setTaxaBase(model.taxaBase());
             recebivel.setDataVencimento(model.dataVencimento());
             recebivel.setFundo(fundo);
             recebivel.setEmpresa(empresa);
             recebivel.setTipo(tipo);
 
-            recebivel.setValorPresente(calcularValorPresente(
-                    model.valorFace(),
-                    fundo == null ? model.taxaBase() : fundo.getTaxaBase(),
-                    tipo.getSpread(),
-                    calcularPrazoEmAnos(model.dataVencimento())
-            ));
+            recebivel.setValorPresente(fundo == null ? null : calcularValorPresente(
+                    model.valorFace(), model.taxaBase(), tipo.getSpread(), fundo.getTaxaBase(),
+                    calcularPrazoEmAnos(model.dataVencimento())));
             return toModel(recebivelRepository.save(recebivel));
         });
     }
@@ -138,18 +136,29 @@ public class RecebivelService {
                 recebivel.getEmpresa().getId(),
                 calcularPrazoEmAnos(recebivel.getDataVencimento()),
                 recebivel.getTipo().getSpread(),
-                recebivel.getFundo() == null ? null : recebivel.getFundo().getTaxaBase()
+                recebivel.getTaxaBase()
         );
     }
 
     public BigDecimal calcularValorPresente(BigDecimal valorFace, BigDecimal taxaBase, BigDecimal spread, BigDecimal prazo) {
+        return calcularValorPresente(valorFace, taxaBase, spread, BigDecimal.ZERO, prazo);
+    }
+
+    public BigDecimal calcularValorPresente(BigDecimal valorFace,
+                                            BigDecimal taxaBaseRecebivel,
+                                            BigDecimal spread,
+                                            BigDecimal taxaBaseFundo,
+                                            BigDecimal prazo) {
         if (valorFace == null) {
             return BigDecimal.ZERO;
         }
 
-        BigDecimal taxaTotal = taxaBase == null ? BigDecimal.ZERO : taxaBase;
+        BigDecimal taxaTotal = taxaBaseRecebivel == null ? BigDecimal.ZERO : taxaBaseRecebivel;
         if (spread != null) {
             taxaTotal = taxaTotal.add(spread);
+        }
+        if (taxaBaseFundo != null) {
+            taxaTotal = taxaTotal.add(taxaBaseFundo);
         }
 
         BigDecimal divisor = BigDecimal.ONE.add(taxaTotal);
@@ -168,5 +177,15 @@ public class RecebivelService {
         return BigDecimal.valueOf(dias)
                 .divide(BigDecimal.valueOf(365), 10, RoundingMode.HALF_UP)
                 .max(BigDecimal.ZERO);
+    }
+
+    private void validarTaxaBase(RecebivelModel model) {
+        if (model.taxaBase() == null) {
+            throw new IllegalArgumentException("A taxa base do recebível é obrigatória");
+        }
+        if (model.taxaBase().compareTo(BigDecimal.ZERO) < 0
+                || model.taxaBase().compareTo(BigDecimal.ONE) > 0) {
+            throw new IllegalArgumentException("A taxa base do recebível deve estar entre 0% e 100%");
+        }
     }
 }
