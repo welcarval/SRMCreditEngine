@@ -3,7 +3,10 @@ package com.srm.msbackend.controllers;
 import com.srm.msbackend.models.FundoModel;
 import com.srm.msbackend.models.RecebivelModel;
 import com.srm.msbackend.services.FundoService;
+import com.srm.msbackend.services.FundoAuthorizationService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -12,44 +15,78 @@ import java.util.List;
 @RequestMapping("/api/fundos")
 public class FundoController {
     private final FundoService fundoService;
+    private final FundoAuthorizationService authorizationService;
 
-    public FundoController(FundoService fundoService) {
+    public FundoController(FundoService fundoService, FundoAuthorizationService authorizationService) {
         this.fundoService = fundoService;
+        this.authorizationService = authorizationService;
     }
 
     @GetMapping
-    public List<FundoModel> listar() {
-        return fundoService.listar();
+    @PreAuthorize("@fundoAuthorizationService.podeListar(authentication)")
+    public List<FundoModel> listar(Authentication authentication) {
+        return authorizationService.ehAdministrador(authentication)
+                ? fundoService.listar()
+                : fundoService.listarPorUsuario(authorizationService.extrairIdentificador(authentication));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<FundoModel> buscarPorId(@PathVariable Long id) {
+    @PreAuthorize("@fundoAuthorizationService.podeAcessar(authentication, #p0)")
+    public ResponseEntity<FundoModel> buscarPorId(@PathVariable Long id, Authentication authentication) {
         return fundoService.buscarPorId(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
-    public FundoModel criar(@RequestBody FundoModel model) {
+    @PreAuthorize("@fundoAuthorizationService.ehAdministrador(authentication)")
+    public FundoModel criar(@RequestBody FundoModel model, Authentication authentication) {
         return fundoService.salvar(model);
     }
 
     @PostMapping("/{fundoId}/recebiveis/{recebivelId}")
+    @PreAuthorize("@fundoAuthorizationService.podeAcessar(authentication, #p0)")
     public RecebivelModel adicionarRecebivel(
             @PathVariable Long fundoId,
-            @PathVariable Long recebivelId) {
+            @PathVariable Long recebivelId,
+            Authentication authentication) {
         return fundoService.adicionarRecebivel(fundoId, recebivelId);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<FundoModel> atualizar(@PathVariable Long id, @RequestBody FundoModel model) {
+    @PreAuthorize("@fundoAuthorizationService.ehAdministrador(authentication)")
+    public ResponseEntity<FundoModel> atualizar(
+            @PathVariable Long id,
+            @RequestBody FundoModel model,
+            Authentication authentication) {
         return fundoService.atualizar(id, model)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deletar(@PathVariable Long id) {
+    @PreAuthorize("@fundoAuthorizationService.ehAdministrador(authentication)")
+    public ResponseEntity<Void> deletar(@PathVariable Long id, Authentication authentication) {
         return fundoService.deletar(id) ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
+    }
+
+    @PutMapping("/{fundoId}/usuarios/{usuarioId}")
+    @PreAuthorize("@fundoAuthorizationService.ehAdministrador(authentication)")
+    public ResponseEntity<Void> associarUsuario(
+            @PathVariable Long fundoId,
+            @PathVariable Long usuarioId,
+            Authentication authentication) {
+        fundoService.associarUsuario(fundoId, usuarioId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/{fundoId}/usuarios/{usuarioId}")
+    @PreAuthorize("@fundoAuthorizationService.ehAdministrador(authentication)")
+    public ResponseEntity<Void> removerUsuario(
+            @PathVariable Long fundoId,
+            @PathVariable Long usuarioId,
+            Authentication authentication) {
+        fundoService.removerUsuario(fundoId, usuarioId);
+        return ResponseEntity.noContent().build();
     }
 }

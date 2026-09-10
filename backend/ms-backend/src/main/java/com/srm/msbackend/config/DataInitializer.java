@@ -6,11 +6,15 @@ import com.srm.msbackend.entities.Fundo;
 import com.srm.msbackend.entities.Moeda;
 import com.srm.msbackend.entities.Recebivel;
 import com.srm.msbackend.entities.TipoRecebivel;
+import com.srm.msbackend.entities.TipoUsuario;
 import com.srm.msbackend.repositories.EmpresaRepository;
 import com.srm.msbackend.repositories.FundoRepository;
 import com.srm.msbackend.repositories.MoedaRepository;
 import com.srm.msbackend.repositories.RecebivelRepository;
 import com.srm.msbackend.repositories.TipoRecebivelRepository;
+import com.srm.msbackend.repositories.TipoUsuarioRepository;
+import com.srm.msbackend.repositories.UsuarioRepository;
+import com.srm.msbackend.entities.Usuario;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -30,8 +34,26 @@ public class DataInitializer {
             FundoRepository fundoRepository,
             EmpresaRepository empresaRepository,
             TipoRecebivelRepository tipoRecebivelRepository,
+            TipoUsuarioRepository tipoUsuarioRepository,
+            UsuarioRepository usuarioRepository,
             RecebivelRepository recebivelRepository) {
         return args -> {
+            tipoUsuarioRepository.findByCodigoIgnoreCase("ADMIN")
+                    .orElseGet(() -> tipoUsuarioRepository.save(
+                            new TipoUsuario("ADMIN", "Administrador")));
+            tipoUsuarioRepository.findByCodigoIgnoreCase("OPERADOR")
+                    .orElseGet(() -> tipoUsuarioRepository.save(
+                            new TipoUsuario("OPERADOR", "Operador")));
+
+            TipoUsuario admin = tipoUsuarioRepository.findByCodigoIgnoreCase("ADMIN").orElseThrow();
+            TipoUsuario operador = tipoUsuarioRepository.findByCodigoIgnoreCase("OPERADOR").orElseThrow();
+            usuarioRepository.findByEmailIgnoreCase("srm.admin@localhost")
+                    .orElseGet(() -> usuarioRepository.save(
+                            new Usuario("SRM Admin", "srm.admin@localhost", admin)));
+            usuarioRepository.findByEmailIgnoreCase("srm.user@localhost")
+                    .orElseGet(() -> usuarioRepository.save(
+                            new Usuario("SRM User", "srm.user@localhost", operador)));
+
             if (recebivelRepository.count() > 0) {
                 return;
             }
@@ -68,7 +90,7 @@ public class DataInitializer {
     }
 
     private Fundo criarFundo(String nome, String cnpj, String taxaBase, Moeda moeda, String identificador) {
-        Conta conta = new Conta(identificador, "Banco SRM", moeda);
+        Conta conta = new Conta(identificador, "Banco SRM", moeda, new BigDecimal("100000.00"));
         return new Fundo(nome, cnpj, new BigDecimal(taxaBase), conta);
     }
 

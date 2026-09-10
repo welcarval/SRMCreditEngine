@@ -18,6 +18,7 @@ import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Service
 public class RecebivelService {
@@ -39,6 +40,18 @@ public class RecebivelService {
     @Transactional(readOnly = true)
     public List<RecebivelModel> listar() {
         return recebivelRepository.findAll().stream()
+                .map(this::toModel)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<RecebivelModel> listarParaUsuario(Long usuarioId) {
+        Set<Long> fundosDoUsuario = fundoRepository.findAllByUsuarios_Id(usuarioId).stream()
+                .map(Fundo::getId)
+                .collect(java.util.stream.Collectors.toSet());
+        return recebivelRepository.findAll().stream()
+                .filter(recebivel -> recebivel.getFundo() == null
+                        || fundosDoUsuario.contains(recebivel.getFundo().getId()))
                 .map(this::toModel)
                 .toList();
     }

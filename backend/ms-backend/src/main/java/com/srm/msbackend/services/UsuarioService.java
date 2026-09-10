@@ -3,9 +3,11 @@ package com.srm.msbackend.services;
 import com.srm.msbackend.entities.TipoUsuario;
 import com.srm.msbackend.entities.Usuario;
 import com.srm.msbackend.models.UsuarioModel;
+import com.srm.msbackend.models.UsuarioAcessoModel;
 import com.srm.msbackend.repositories.TipoUsuarioRepository;
 import com.srm.msbackend.repositories.UsuarioRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -20,8 +22,9 @@ public class UsuarioService {
         this.tipoUsuarioRepository = tipoUsuarioRepository;
     }
 
-    public List<Usuario> listar() {
-        return usuarioRepository.findAll();
+    @Transactional(readOnly = true)
+    public List<UsuarioAcessoModel> listar() {
+        return usuarioRepository.findAll().stream().map(this::toAcessoModel).toList();
     }
 
     public Optional<Usuario> buscarPorId(Long id) {
@@ -48,9 +51,20 @@ public class UsuarioService {
             return false;
         }
 
-        usuarioRepository.deleteById(id);
-        return true;
-    }
+            usuarioRepository.deleteById(id);
+            return true;
+        }
+
+        @Transactional(readOnly = true)
+        public UsuarioAcessoModel toAcessoModel(Usuario usuario) {
+            return new UsuarioAcessoModel(
+                    usuario.getId(),
+                    usuario.getNome(),
+                    usuario.getEmail(),
+                    usuario.getTipo() == null ? null : usuario.getTipo().getCodigo(),
+                    usuario.getFundos().stream().map(fundo -> fundo.getId()).toList()
+            );
+        }
 
     private TipoUsuario buscarTipo(Long tipoId) {
         return tipoUsuarioRepository.findById(tipoId)

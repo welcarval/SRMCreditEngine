@@ -8,13 +8,16 @@
     let query = $state('');
     let error = $state('');
     let notice = $state('');
+    let isAdmin = $state(false);
     let selected = $state<Fund | null | undefined>(undefined);
     let filtered = $derived(funds.filter((fund) => `${fund.nome} ${fund.cnpj}`.toLowerCase().includes(query.toLowerCase())));
     onMount(load);
 
     async function load() {
         try {
-            funds = await api.funds();
+            const [loadedFunds, profile] = await Promise.all([api.funds(), api.currentUser()]);
+            funds = loadedFunds;
+            isAdmin = profile.tipo.toUpperCase() === 'ADMIN';
         } catch (err: unknown) {
             error = err instanceof Error ? err.message : 'Não foi possível carregar os fundos.';
         }
@@ -43,7 +46,7 @@
     <div><p class="eyebrow">GESTÃO DE CARTEIRAS</p>
         <h1>Fundos</h1>
         <p class="muted">Cadastre e consulte os fundos de investimento sob operação.</p></div>
-    <button class="button primary" onclick={() => selected = null}>＋ Novo fundo</button>
+    {#if isAdmin}<button class="button primary" onclick={() => selected = null}>＋ Novo fundo</button>{/if}
 </div>
 <div class="toolbar">
     <div class="search"><span>⌕</span><input bind:value={query} placeholder="Buscar por nome ou CNPJ"/></div>
@@ -72,8 +75,8 @@
                     <td>{(Number(fund.taxaBase || 0) * 100).toFixed(2)}%</td>
                     <td>{fund.conta?.identificador || '—'}</td>
                     <td class="actions">
-                        <button onclick={() => selected = fund}>Editar</button>
-                        <button class="danger-link" onclick={() => remove(fund.id)}>Excluir</button>
+                        {#if isAdmin}<button onclick={() => selected = fund}>Editar</button>{/if}
+                        {#if isAdmin}<button class="danger-link" onclick={() => remove(fund.id)}>Excluir</button>{/if}
                     </td>
                 </tr>
             {/each}

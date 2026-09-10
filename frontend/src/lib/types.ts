@@ -4,6 +4,7 @@ export interface Fund {
     cnpj?: string | null;
     taxaBase?: number | null;
     contaId?: number | null;
+    saldo?: number | null;
     conta?: {
         id?: number;
         identificador?: string | null;
@@ -59,4 +60,12 @@ export interface ReceivablePayload {
     prazo: number;
     spread: number;
     taxaBase: number;
+}
+
+export interface UserAccess {
+    id: number;
+    nome: string;
+    email: string;
+    tipo: string;
+    fundoIds: number[];
 }

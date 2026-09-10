@@ -10,6 +10,7 @@ import com.srm.msbackend.repositories.ContaRepository;
 import com.srm.msbackend.repositories.FundoRepository;
 import com.srm.msbackend.repositories.RecebivelRepository;
 import com.srm.msbackend.repositories.TransacaoRepository;
+import com.srm.msbackend.repositories.UsuarioRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,22 +29,32 @@ public class FundoService {
     private final RecebivelRepository recebivelRepository;
     private final TransacaoRepository transacaoRepository;
     private final TransacaoService transacaoService;
+    private final UsuarioRepository usuarioRepository;
 
     public FundoService(FundoRepository fundoRepository,
                         ContaRepository contaRepository,
                         RecebivelRepository recebivelRepository,
                         TransacaoRepository transacaoRepository,
-                        TransacaoService transacaoService) {
+                        TransacaoService transacaoService,
+                        UsuarioRepository usuarioRepository) {
         this.fundoRepository = fundoRepository;
         this.contaRepository = contaRepository;
         this.recebivelRepository = recebivelRepository;
         this.transacaoRepository = transacaoRepository;
         this.transacaoService = transacaoService;
+        this.usuarioRepository = usuarioRepository;
     }
 
     @Transactional(readOnly = true)
     public List<FundoModel> listar() {
         return fundoRepository.findAll().stream().map(this::toModel).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<FundoModel> listarPorUsuario(String email) {
+        return fundoRepository.findAllByUsuarios_EmailIgnoreCase(email).stream()
+                .map(this::toModel)
+                .toList();
     }
 
     @Transactional(readOnly = true)
@@ -122,13 +133,38 @@ public class FundoService {
         return true;
     }
 
+    @Transactional
+    public void associarUsuario(Long fundoId, Long usuarioId) {
+        Fundo fundo = fundoRepository.findById(fundoId)
+                .orElseThrow(() -> new IllegalArgumentException("Fundo não encontrado: " + fundoId));
+        var usuario = usuarioRepository.findById(usuarioId)
+                .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado: " + usuarioId));
+
+        fundo.getUsuarios().add(usuario);
+        usuario.getFundos().add(fundo);
+        fundoRepository.save(fundo);
+    }
+
+    @Transactional
+    public void removerUsuario(Long fundoId, Long usuarioId) {
+        Fundo fundo = fundoRepository.findById(fundoId)
+                .orElseThrow(() -> new IllegalArgumentException("Fundo não encontrado: " + fundoId));
+        var usuario = usuarioRepository.findById(usuarioId)
+                .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado: " + usuarioId));
+
+        fundo.getUsuarios().remove(usuario);
+        usuario.getFundos().remove(fundo);
+        fundoRepository.save(fundo);
+    }
+
     private FundoModel toModel(Fundo fundo) {
         return new FundoModel(
                 fundo.getId(),
                 fundo.getNome(),
                 fundo.getCnpj(),
                 fundo.getTaxaBase(),
-                fundo.getConta() == null ? null : fundo.getConta().getId()
+                fundo.getConta() == null ? null : fundo.getConta().getId(),
+                fundo.getConta() == null ? null : fundo.getConta().getSaldo()
         );
     }
 

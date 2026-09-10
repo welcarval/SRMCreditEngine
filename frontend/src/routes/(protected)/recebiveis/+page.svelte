@@ -1,7 +1,7 @@
 <script lang="ts">
     import {onMount} from 'svelte';
     import {api} from '$lib/api';
-    import type {Company, Fund, Receivable, ReceivableType} from '$lib/types';
+    import type {Company, Fund, Receivable, ReceivableType, UserAccess} from '$lib/types';
     import ReceivableModal from '$lib/components/ReceivableModal.svelte';
 
     let funds = $state<Fund[]>([]);
@@ -13,6 +13,7 @@
     let selected = $state<Receivable | null | undefined>(undefined);
     let error = $state('');
     let notice = $state('');
+    let isAdmin = $state(false);
     const currency = (value: number | null | undefined) => new Intl.NumberFormat('pt-BR', {
         style: 'currency',
         currency: 'BRL'
@@ -21,14 +22,19 @@
     const fundName = (item: Receivable) => item?.fundo?.nome || funds.find((fund) => String(fund.id) === String(item.fundoId))?.nome || '—';
     const companyName = (item: Receivable) => item?.empresa?.razaoSocial || companies.find((company) => String(company.id) === String(item.empresaId))?.razaoSocial || '—';
     let filtered = $derived(receivables.filter((item) => {
-        const matchesTab = activeTab === 'todos' || (activeTab === 'vencendo' && days(item.dataVencimento) <= 30) || (activeTab === 'atrasados' && days(item.dataVencimento) < 0);
+        const matchesTab = activeTab === 'todos'
+            || (activeTab === 'sem-fundo' && !item.fundoId)
+            || (activeTab === 'vencendo' && days(item.dataVencimento) <= 30)
+            || (activeTab === 'atrasados' && days(item.dataVencimento) < 0);
         return matchesTab && `${item.id} ${fundName(item)} ${companyName(item)}`.toLowerCase().includes(query.toLowerCase());
     }));
     onMount(async () => {
         try {
-            [funds, receivables, companies, receivableTypes] = await Promise.all([
-                api.funds(), api.receivables(), api.companies(), api.receivableTypes()
+            let profile: UserAccess;
+            [funds, receivables, companies, receivableTypes, profile] = await Promise.all([
+                api.funds(), api.receivables(), api.companies(), api.receivableTypes(), api.currentUser()
             ]);
+            isAdmin = profile.tipo.toUpperCase() === 'ADMIN';
         } catch (err: unknown) {
             error = err instanceof Error ? err.message : 'Não foi possível carregar os recebíveis.';
         }
@@ -57,13 +63,14 @@
     <div><p class="eyebrow">ATIVOS DE CRÉDITO</p>
         <h1>Recebíveis</h1>
         <p class="muted">Controle, análise e acompanhamento dos direitos creditórios.</p></div>
-    <button class="button primary" onclick={() => selected = null}>＋ Novo recebível</button>
+    {#if isAdmin}<button class="button primary" onclick={() => selected = null}>＋ Novo recebível</button>{/if}
 </div>
 <div class="toolbar">
     <div class="search"><span>⌕</span><input bind:value={query} placeholder="Buscar por fundo, empresa ou ID"/></div>
     <div class="tabs">
         <button class:active={activeTab === 'todos'} onclick={() => activeTab = 'todos'}>Todos
             <b>{receivables.length}</b></button>
+        <button class:active={activeTab === 'sem-fundo'} onclick={() => activeTab = 'sem-fundo'}>Sem fundo</button>
         <button class:active={activeTab === 'vencendo'} onclick={() => activeTab = 'vencendo'}>Vencendo</button>
         <button class:active={activeTab === 'atrasados'} onclick={() => activeTab = 'atrasados'}>Em atraso</button>
     </div>
@@ -92,8 +99,9 @@
                     <td>{currency(item.valorFace)}</td>
                     <td><strong>{currency(item.valorPresente)}</strong></td>
                     <td class="actions">
-                        <button onclick={() => selected = item}>Editar</button>
-                        <button class="danger-link" onclick={() => remove(item.id)}>Excluir</button>
+                        <a href={`/recebiveis/${item.id}`}>Ver</a>
+                        {#if isAdmin}<button onclick={() => selected = item}>Editar</button>
+                            <button class="danger-link" onclick={() => remove(item.id)}>Excluir</button>{/if}
                     </td>
                 </tr>
             {/each}

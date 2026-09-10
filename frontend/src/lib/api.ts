@@ -1,5 +1,5 @@
 import {accessToken, logout} from './auth.svelte';
-import type {Company, Fund, FundPayload, Receivable, ReceivablePayload, ReceivableType} from './types';
+import type {Company, Fund, FundPayload, Receivable, ReceivablePayload, ReceivableType, UserAccess} from './types';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
@@ -44,5 +44,13 @@ export const api = {
     }),
     deleteReceivable: (id: number) => request<void>('/api/recebiveis/' + id, {method: 'DELETE'}),
     companies: () => request<Company[]>('/api/empresas'),
-    receivableTypes: () => request<ReceivableType[]>('/api/tipos-recebiveis')
+    receivableTypes: () => request<ReceivableType[]>('/api/tipos-recebiveis'),
+    currentUser: () => request<UserAccess>('/api/usuarios/me'),
+    users: () => request<UserAccess[]>('/api/usuarios'),
+    addReceivableToFund: (fundId: number, receivableId: number) =>
+        request<Receivable>(`/api/fundos/${fundId}/recebiveis/${receivableId}`, {method: 'POST'}),
+    grantFundAccess: (fundId: number, userId: number) =>
+        request<void>(`/api/fundos/${fundId}/usuarios/${userId}`, {method: 'PUT'}),
+    revokeFundAccess: (fundId: number, userId: number) =>
+        request<void>(`/api/fundos/${fundId}/usuarios/${userId}`, {method: 'DELETE'})
 };

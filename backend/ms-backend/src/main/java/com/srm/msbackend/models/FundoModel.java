@@ -7,6 +7,7 @@ public record FundoModel(
         String nome,
         String cnpj,
         BigDecimal taxaBase,
-        Long contaId
+        Long contaId,
+        BigDecimal saldo
 ) {
 }
