@@ -51,6 +51,18 @@ class FundoAuthorizationServiceTest {
                 .isInstanceOf(AccessDeniedException.class);
     }
 
+    @Test void validaScopeEfetivoDasRolesDoUsuario() {
+        Role operador = new Role("OPERADOR", "Operador");
+        operador.getScopes().add(new Scope("fundos:read", "Consultar fundos"));
+        Usuario usuario = new Usuario("U", "u@u", operador);
+        when(authentication.isAuthenticated()).thenReturn(true);
+        when(authentication.getName()).thenReturn("u@u");
+        when(usuarioRepository.findByEmailIgnoreCase("u@u")).thenReturn(Optional.of(usuario));
+
+        assertThat(service.temScope(authentication, "fundos:read")).isTrue();
+        assertThat(service.temScope(authentication, "fundos:write")).isFalse();
+    }
+
     @Test void extraiIdentificadoresJwtEValidaFalhas() {
         Jwt emailJwt = Jwt.withTokenValue("t").header("alg", "none")
                 .claim("email", "jwt@u").subject("sub").build();

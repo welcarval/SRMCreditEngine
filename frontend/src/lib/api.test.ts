@@ -69,6 +69,7 @@ describe('api methods', () => {
         ['funds', '/api/fundos', 'GET'],
         ['receivables', '/api/recebiveis', 'GET'],
         ['companies', '/api/empresas', 'GET'],
+        ['currencies', '/api/moedas', 'GET'],
         ['receivableTypes', '/api/tipos-recebiveis', 'GET'],
         ['currentUser', '/api/usuarios/me', 'GET'],
         ['users', '/api/usuarios', 'GET']
@@ -110,5 +111,58 @@ describe('api methods', () => {
         expect(fetch).toHaveBeenNthCalledWith(1, '/api/fundos/2/recebiveis/3', expect.objectContaining({method: 'POST'}));
         expect(fetch).toHaveBeenNthCalledWith(2, '/api/fundos/2/usuarios/4', expect.objectContaining({method: 'PUT'}));
         expect(fetch).toHaveBeenNthCalledWith(3, '/api/fundos/2/usuarios/4', expect.objectContaining({method: 'DELETE'}));
+    });
+
+    it('queries a statement with all supplied filters', async () => {
+        const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(jsonResponse([]));
+
+        await api.statement({
+            dataInicial: '2026-01-01',
+            dataFinal: '2026-01-31',
+            fundoId: 2,
+            empresaId: 3,
+            moedaId: 4
+        });
+
+        expect(fetchMock).toHaveBeenCalledWith(
+            '/api/extratos?formato=json&dataInicial=2026-01-01&dataFinal=2026-01-31&fundoId=2&empresaId=3&moedaId=4',
+            expect.objectContaining({headers: expect.any(Object)})
+        );
+    });
+
+    it('downloads statement files with filters and bearer authentication', async () => {
+        const blob = new Blob(['csv content'], {type: 'text/csv'});
+        const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(blob));
+
+        await expect(api.downloadStatement({fundoId: 7}, 'csv')).resolves.toBeInstanceOf(Blob);
+
+        expect(fetchMock).toHaveBeenCalledWith(
+            '/api/extratos?formato=csv&fundoId=7',
+            {headers: {Authorization: 'Bearer test-token'}}
+        );
+    });
+
+    it('handles statement download authentication and API errors', async () => {
+        vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response('', {status: 401}));
+        await expect(api.downloadStatement({}, 'parquet')).rejects.toThrow('Sua sessão expirou.');
+        expect(logout).toHaveBeenCalledOnce();
+
+        vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response('Erro no extrato', {status: 422}));
+        await expect(api.downloadStatement({}, 'parquet')).rejects.toThrow('Erro no extrato');
+
+        vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response('', {status: 422}));
+        await expect(api.downloadStatement({}, 'parquet')).rejects.toThrow('A API retornou 422.');
+    });
+
+    it('omits authorization when downloading without a token', async () => {
+        accessToken.mockReturnValue('');
+        const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(new Blob()));
+
+        await api.downloadStatement({}, 'parquet');
+
+        expect(fetchMock).toHaveBeenCalledWith(
+            '/api/extratos?formato=parquet',
+            {headers: {}}
+        );
     });
 });

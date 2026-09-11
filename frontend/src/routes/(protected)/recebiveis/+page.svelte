@@ -1,6 +1,7 @@
 <script lang="ts">
     import {onMount} from 'svelte';
     import {api} from '$lib/api';
+    import {hasRole, hasScope} from '$lib/permissions';
     import type {Company, Fund, Receivable, ReceivableType, UserAccess} from '$lib/types';
     import ReceivableModal from '$lib/components/ReceivableModal.svelte';
 
@@ -13,7 +14,9 @@
     let selected = $state<Receivable | null | undefined>(undefined);
     let error = $state('');
     let notice = $state('');
-    let isAdmin = $state(false);
+    let canManageReceivables = $state(false);
+    let canCreateReceivables = $state(false);
+    let canManageFunds = $state(false);
     type SortKey = 'id' | 'fund' | 'company' | 'dueDate' | 'faceValue' | 'baseRate';
     let sortKey = $state<SortKey>('id');
     let sortDirection = $state<'asc' | 'desc'>('asc');
@@ -61,13 +64,16 @@
     function sortIndicator(key: SortKey) {
         return sortKey === key ? (sortDirection === 'asc' ? '↑' : '↓') : '↕';
     }
+
     onMount(async () => {
         try {
             let profile: UserAccess;
             [funds, receivables, companies, receivableTypes, profile] = await Promise.all([
                 api.funds(), api.receivables(), api.companies(), api.receivableTypes(), api.currentUser()
             ]);
-            isAdmin = profile.tipo.toUpperCase() === 'ADMIN';
+            canManageReceivables = hasRole(profile, 'ADMIN');
+            canCreateReceivables = hasScope(profile, 'recebiveis:criar');
+            canManageFunds = hasScope(profile, 'fundos:gerenciar');
         } catch (err: unknown) {
             error = err instanceof Error ? err.message : 'Não foi possível carregar os recebíveis.';
         }
@@ -96,14 +102,16 @@
     <div><p class="eyebrow">ATIVOS DE CRÉDITO</p>
         <h1>Recebíveis</h1>
         <p class="muted">Controle, análise e acompanhamento dos direitos creditórios.</p></div>
-    <button class="button primary" onclick={() => selected = null}>＋ Novo recebível</button>
+    {#if canCreateReceivables}<button class="button primary" onclick={() => selected = null}>＋ Novo recebível</button>{/if}
 </div>
 <div class="toolbar">
     <div class="search"><span>⌕</span><input bind:value={query} placeholder="Buscar por fundo, empresa ou ID"/></div>
     <div class="tabs">
         <button class:active={activeTab === 'todos'} onclick={() => activeTab = 'todos'}>Todos
             <b>{receivables.length}</b></button>
-        <button class:active={activeTab === 'disponiveis'} onclick={() => activeTab = 'disponiveis'}>Disponíveis para compra</button>
+        <button class:active={activeTab === 'disponiveis'} onclick={() => activeTab = 'disponiveis'}>Disponíveis para
+            compra
+        </button>
         <button class:active={activeTab === 'vencendo'} onclick={() => activeTab = 'vencendo'}>Vencendo</button>
         <button class:active={activeTab === 'atrasados'} onclick={() => activeTab = 'atrasados'}>Em atraso</button>
     </div>
@@ -113,12 +121,29 @@
         <table>
             <thead>
             <tr>
-                <th><button class="sort-button" onclick={() => sortBy('id')}>Identificação {sortIndicator('id')}</button></th>
-                <th><button class="sort-button" onclick={() => sortBy('fund')}>Fundo {sortIndicator('fund')}</button></th>
-                <th><button class="sort-button" onclick={() => sortBy('company')}>Empresa cedente {sortIndicator('company')}</button></th>
-                <th><button class="sort-button" onclick={() => sortBy('dueDate')}>Vencimento {sortIndicator('dueDate')}</button></th>
-                <th><button class="sort-button" onclick={() => sortBy('faceValue')}>Valor de face {sortIndicator('faceValue')}</button></th>
-                <th><button class="sort-button" onclick={() => sortBy('baseRate')}>Taxa base {sortIndicator('baseRate')}</button></th>
+                <th>
+                    <button class="sort-button" onclick={() => sortBy('id')}>
+                        Identificação {sortIndicator('id')}</button>
+                </th>
+                <th>
+                    <button class="sort-button" onclick={() => sortBy('fund')}>Fundo {sortIndicator('fund')}</button>
+                </th>
+                <th>
+                    <button class="sort-button" onclick={() => sortBy('company')}>Empresa
+                        cedente {sortIndicator('company')}</button>
+                </th>
+                <th>
+                    <button class="sort-button" onclick={() => sortBy('dueDate')}>
+                        Vencimento {sortIndicator('dueDate')}</button>
+                </th>
+                <th>
+                    <button class="sort-button" onclick={() => sortBy('faceValue')}>Valor de
+                        face {sortIndicator('faceValue')}</button>
+                </th>
+                <th>
+                    <button class="sort-button" onclick={() => sortBy('baseRate')}>Taxa
+                        base {sortIndicator('baseRate')}</button>
+                </th>
                 <th></th>
             </tr>
             </thead>
@@ -133,8 +158,10 @@
                     <td>{(Number(item.taxaBase || 0) * 100).toFixed(2)}%</td>
                     <td class="actions">
                         <a href={`/recebiveis/${item.id}`}>Ver</a>
-                        {#if isAdmin}<button onclick={() => selected = item}>Editar</button>
-                            <button class="danger-link" onclick={() => remove(item.id)}>Excluir</button>{/if}
+                        {#if canManageReceivables}
+                            <button onclick={() => selected = item}>Editar</button>
+                            <button class="danger-link" onclick={() => remove(item.id)}>Excluir</button>
+                        {/if}
                     </td>
                 </tr>
             {/each}
@@ -150,6 +177,7 @@
     </div>
 </section>
 {#if selected !== undefined}
-    <ReceivableModal item={selected} {funds} {companies} {receivableTypes} {isAdmin} onclose={() => selected = undefined}
+    <ReceivableModal item={selected} {funds} {companies} {receivableTypes} canManageFunds={canManageFunds}
+                     onclose={() => selected = undefined}
                      onsaved={(saved: Receivable) => { receivables = selected ? receivables.map((item) => item.id === saved.id ? saved : item) : [...receivables, saved]; selected = undefined; notice = 'Recebível salvo com sucesso.'; }}/>
 {/if}

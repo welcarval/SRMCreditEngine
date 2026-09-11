@@ -66,6 +66,51 @@ export interface UserAccess {
     id: number;
     nome: string;
     email: string;
-    tipo: string;
+    roles: string[];
+    scopes: string[];
     fundoIds: number[];
+    directScopes: string[];
+}
+
+export interface Role {
+    id: number;
+    nome: string;
+    scopes: string[];
+}
+
+export interface PermissionScope {
+    id: number;
+    codigo: string;
+    descricao: string;
+}
+
+export interface Currency {
+    id: number;
+    codigo: string;
+    nome: string;
+}
+
+export interface StatementTransaction {
+    id: number;
+    valor: number;
+    realizadaEm: string;
+    status: string;
+    contaOrigem?: {
+        id?: number;
+        identificador?: string;
+        moeda?: Currency;
+    } | null;
+    contaDestino?: {
+        id?: number;
+        identificador?: string;
+        moeda?: Currency;
+    } | null;
+}
+
+export interface StatementFilters {
+    dataInicial?: string;
+    dataFinal?: string;
+    fundoId?: number;
+    empresaId?: number;
+    moedaId?: number;
 }

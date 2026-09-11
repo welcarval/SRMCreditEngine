@@ -18,9 +18,21 @@ public class Usuario {
     @Column(nullable = false, unique = true)
     private String email;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "tipo_usuario_id", nullable = false)
-    private TipoUsuario tipo;
+    @ManyToMany
+    @JoinTable(
+            name = "usuario_role",
+            joinColumns = @JoinColumn(name = "usuario_id"),
+            inverseJoinColumns = @JoinColumn(name = "role_id")
+    )
+    private Set<Role> roles = new HashSet<>();
+
+    @ManyToMany
+    @JoinTable(
+            name = "usuario_scope",
+            joinColumns = @JoinColumn(name = "usuario_id"),
+            inverseJoinColumns = @JoinColumn(name = "scope_id")
+    )
+    private Set<Scope> scopes = new HashSet<>();
 
     @ManyToMany(mappedBy = "usuarios")
     private Set<Fundo> fundos = new HashSet<>();
@@ -28,10 +40,22 @@ public class Usuario {
     public Usuario() {
     }
 
-    public Usuario(String nome, String email, TipoUsuario tipo) {
+    public Usuario(String nome, String email, Set<Role> roles) {
         this.nome = nome;
         this.email = email;
-        this.tipo = tipo;
+        this.roles = roles == null ? new HashSet<>() : roles;
+    }
+
+    public Usuario(String nome, String email, Role role) {
+        this(nome, email, role == null ? Set.of() : Set.of(role));
+    }
+
+    /**
+     * Compatibilidade de construção para clientes legados; o vínculo persistido é Role.
+     */
+    @Deprecated
+    public Usuario(String nome, String email, TipoUsuario tipo) {
+        this(nome, email, tipo == null ? null : new Role(tipo.getCodigo(), tipo.getDescricao()));
     }
 
     public Long getId() {
@@ -54,12 +78,28 @@ public class Usuario {
         this.email = email;
     }
 
-    public TipoUsuario getTipo() {
-        return tipo;
+    public Set<Role> getRoles() {
+        return roles;
     }
 
-    public void setTipo(TipoUsuario tipo) {
-        this.tipo = tipo;
+    public void setRoles(Set<Role> roles) {
+        this.roles = roles == null ? new HashSet<>() : roles;
+    }
+
+    public Set<Scope> getScopes() {
+        return scopes;
+    }
+
+    public void setScopes(Set<Scope> scopes) {
+        this.scopes = scopes == null ? new HashSet<>() : scopes;
+    }
+
+    @Deprecated
+    public TipoUsuario getTipo() {
+        return roles.stream()
+                .findFirst()
+                .map(role -> new TipoUsuario(role.getCodigo(), role.getDescricao()))
+                .orElse(null);
     }
 
     public Set<Fundo> getFundos() {

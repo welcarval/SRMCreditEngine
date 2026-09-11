@@ -2,6 +2,7 @@
     import {onMount} from 'svelte';
     import {page} from '$app/state';
     import {api} from '$lib/api';
+    import {hasScope} from '$lib/permissions';
     import ReceivableModal from '$lib/components/ReceivableModal.svelte';
     import type {Company, Fund, Receivable, ReceivableType, UserAccess} from '$lib/types';
 
@@ -14,7 +15,9 @@
     let loading = $state(true);
     let error = $state('');
     let notice = $state('');
-    let isAdmin = $state(false);
+    let canCreateReceivables = $state(false);
+    let canBuyReceivables = $state(false);
+    let canManageFunds = $state(false);
     let buyOpen = $state(false);
     const fundId = $derived(Number(page.params.id));
     const currency = (value: number | null | undefined) => new Intl.NumberFormat('pt-BR', {
@@ -33,7 +36,9 @@
             [funds, receivables, companies, receivableTypes, profile] = await Promise.all([
                 api.funds(), api.receivables(), api.companies(), api.receivableTypes(), api.currentUser()
             ]);
-            isAdmin = profile.tipo.toUpperCase() === 'ADMIN';
+            canCreateReceivables = hasScope(profile, 'recebiveis:criar');
+            canBuyReceivables = hasScope(profile, 'recebiveis:comprar');
+            canManageFunds = hasScope(profile, 'fundos:gerenciar');
             fund = funds.find((item) => item.id === fundId) || null;
             if (!fund) error = 'Fundo não encontrado.';
         } catch (err: unknown) {
@@ -58,7 +63,7 @@
             <h1>{fund.nome}</h1>
             <p class="muted">CNPJ {fund.cnpj || 'não informado'} · Taxa base {(Number(fund.taxaBase || 0) * 100).toFixed(2)}%</p>
         </div>
-        <button class="button primary" onclick={() => buyOpen = true}>＋ Comprar recebível</button>
+        {#if canBuyReceivables}<button class="button primary" onclick={() => buyOpen = true}>＋ Comprar recebível</button>{/if}
     </div>
     <div class="metric-grid">
         <div class="metric-card"><div class="metric-icon blue">▤</div><div><span>Recebíveis no fundo</span><strong>{fundReceivables.length}</strong><small>ativos vinculados</small></div></div>
@@ -79,6 +84,7 @@
     </section>
     {#if selected !== undefined}
         <ReceivableModal item={selected} {funds} {companies} {receivableTypes} fundId={fund.id} allowFundSelection
+                         canManageFunds={canManageFunds}
                          onclose={() => selected = undefined}
                          onsaved={(saved: Receivable) => { receivables = [...receivables, saved]; selected = undefined; notice = 'Recebível comprado com sucesso.'; }}/>
     {/if}
@@ -91,7 +97,7 @@
                 </div>
                 <div class="modal-actions modal-top-action">
                     <p class="muted">Escolha um recebível disponível para este fundo.</p>
-                    {#if isAdmin}<button class="button secondary" onclick={() => { buyOpen = false; selected = null; }}>Cadastrar novo recebível</button>{/if}
+                    {#if canCreateReceivables}<button class="button secondary" onclick={() => { buyOpen = false; selected = null; }}>Cadastrar novo recebível</button>{/if}
                 </div>
                 {#if availableReceivables.length}
                     <div class="table-wrap"><table>
@@ -106,7 +112,7 @@
                         {/each}</tbody>
                     </table></div>
                 {:else}
-                    <div class="empty">{isAdmin ? 'Nenhum recebível disponível. Cadastre um novo recebível para continuar.' : 'Nenhum recebível disponível para compra.'}</div>
+                    <div class="empty">{canCreateReceivables ? 'Nenhum recebível disponível. Cadastre um novo recebível para continuar.' : 'Nenhum recebível disponível para compra.'}</div>
                 {/if}
                 <div class="modal-actions">
                     <button type="button" class="button secondary" onclick={() => buyOpen = false}>Cancelar</button>

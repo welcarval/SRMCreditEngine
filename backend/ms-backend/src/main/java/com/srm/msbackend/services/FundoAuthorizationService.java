@@ -1,6 +1,8 @@
 package com.srm.msbackend.services;
 
 import com.srm.msbackend.entities.Usuario;
+import com.srm.msbackend.entities.Role;
+import com.srm.msbackend.entities.Scope;
 import com.srm.msbackend.repositories.FundoRepository;
 import com.srm.msbackend.repositories.UsuarioRepository;
 import org.springframework.security.access.AccessDeniedException;
@@ -28,7 +30,22 @@ public class FundoAuthorizationService {
 
     @Transactional(readOnly = true)
     public boolean ehAdministrador(Authentication authentication) {
-        return "ADMIN".equalsIgnoreCase(usuarioAtual(authentication).getTipo().getCodigo());
+        return ehAdministrador(usuarioAtual(authentication));
+    }
+
+    @Transactional(readOnly = true)
+    public boolean temScope(Authentication authentication, String scope) {
+        Usuario usuario = usuarioAtual(authentication);
+        return java.util.stream.Stream.concat(
+                        usuario.getRoles().stream().flatMap(role -> role.getScopes().stream()),
+                        usuario.getScopes().stream())
+                .map(Scope::getCodigo)
+                .anyMatch(scope::equalsIgnoreCase);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean temScopeEAcessoFundo(Authentication authentication, String scope, Long fundoId) {
+        return temScope(authentication, scope) && podeAcessar(authentication, fundoId);
     }
 
     @Transactional(readOnly = true)
@@ -78,8 +95,9 @@ public class FundoAuthorizationService {
         return authentication.getName();
     }
 
-    private boolean ehAdministrador(Usuario usuario) {
-        return usuario.getTipo() != null
-                && "ADMIN".equalsIgnoreCase(usuario.getTipo().getCodigo());
+    public boolean ehAdministrador(Usuario usuario) {
+        return usuario.getRoles().stream()
+                .map(Role::getCodigo)
+                .anyMatch("ADMIN"::equalsIgnoreCase);
     }
 }

@@ -24,7 +24,16 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
     implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
     implementation("org.springframework.boot:spring-boot-starter-validation")
-    runtimeOnly("com.h2database:h2")
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.1")
+    implementation("org.apache.parquet:parquet-avro:1.15.2")
+    implementation("org.apache.hadoop:hadoop-common:3.4.1") {
+        exclude(group = "org.slf4j", module = "slf4j-reload4j")
+        exclude(group = "com.sun.xml.bind")
+        exclude(group = "javax.xml.bind")
+        exclude(group = "jakarta.xml.bind", module = "jakarta.xml.bind-api")
+    }
+    implementation("net.datafaker:datafaker:2.4.2")
+    runtimeOnly("org.postgresql:postgresql")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.security:spring-security-test")
     testImplementation("org.springframework.boot:spring-boot-starter-data-jpa-test")

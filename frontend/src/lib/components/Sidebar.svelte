@@ -1,14 +1,20 @@
 <script lang="ts">
     import {page} from '$app/state';
 
-    let {logout, isAdmin = false} = $props<{logout: () => Promise<void>; isAdmin?: boolean}>();
+    let {logout, canManagePermissions = false} = $props<{
+        logout: () => Promise<void>;
+        canManagePermissions?: boolean;
+    }>();
     const nav = [
         {path: '/dashboard', label: 'Visão geral', icon: '▦'},
         {path: '/recebiveis', label: 'Recebíveis', icon: '▤'},
         {path: '/fundos', label: 'Fundos', icon: '▱'}
     ];
-    let adminNav = $derived(isAdmin
-        ? [...nav, {path: '/usuarios', label: 'Permissões', icon: '♙'}]
+    let authorizedNav = $derived(canManagePermissions
+        ? [...nav,
+            {path: '/extratos', label: 'Extratos', icon: '▥'},
+            {path: '/usuarios', label: 'Fundos por usuário', icon: '♙'},
+            {path: '/permissoes', label: 'Permissões', icon: '⚿'}]
         : nav);
 </script>
 
@@ -17,7 +23,7 @@
     </div>
     <nav>
         <p class="nav-label">NAVEGAÇÃO</p>
-        {#each adminNav as item}
+        {#each authorizedNav as item}
             <a class:active={page.url.pathname === item.path || page.url.pathname.startsWith(`${item.path}/`)} href={item.path}><span
                     class="nav-icon">{item.icon}</span>{item.label}</a>
         {/each}

@@ -4,6 +4,8 @@ import com.srm.msbackend.models.FundoModel;
 import com.srm.msbackend.models.RecebivelModel;
 import com.srm.msbackend.services.FundoService;
 import com.srm.msbackend.services.FundoAuthorizationService;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -13,6 +15,8 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/fundos")
+@Tag(name = "Fundos", description = "Gerenciamento de fundos e associação de usuários")
+@SecurityRequirement(name = "bearerAuth")
 public class FundoController {
     private final FundoService fundoService;
     private final FundoAuthorizationService authorizationService;
@@ -23,7 +27,7 @@ public class FundoController {
     }
 
     @GetMapping
-    @PreAuthorize("@fundoAuthorizationService.podeListar(authentication)")
+    @PreAuthorize("@fundoAuthorizationService.temScope(authentication, 'fundos:read')")
     public List<FundoModel> listar(Authentication authentication) {
         return authorizationService.ehAdministrador(authentication)
                 ? fundoService.listar()
@@ -31,7 +35,7 @@ public class FundoController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("@fundoAuthorizationService.podeAcessar(authentication, #p0)")
+    @PreAuthorize("@fundoAuthorizationService.temScopeEAcessoFundo(authentication, 'fundos:read', #p0)")
     public ResponseEntity<FundoModel> buscarPorId(@PathVariable Long id, Authentication authentication) {
         return fundoService.buscarPorId(id)
                 .map(ResponseEntity::ok)
@@ -39,13 +43,13 @@ public class FundoController {
     }
 
     @PostMapping
-    @PreAuthorize("@fundoAuthorizationService.ehAdministrador(authentication)")
+    @PreAuthorize("@fundoAuthorizationService.temScope(authentication, 'fundos:write')")
     public FundoModel criar(@RequestBody FundoModel model, Authentication authentication) {
         return fundoService.salvar(model);
     }
 
     @PostMapping("/{fundoId}/recebiveis/{recebivelId}")
-    @PreAuthorize("@fundoAuthorizationService.podeAcessar(authentication, #p0)")
+    @PreAuthorize("@fundoAuthorizationService.temScopeEAcessoFundo(authentication, 'fundos:write', #p0)")
     public RecebivelModel adicionarRecebivel(
             @PathVariable Long fundoId,
             @PathVariable Long recebivelId,
@@ -54,7 +58,7 @@ public class FundoController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("@fundoAuthorizationService.ehAdministrador(authentication)")
+    @PreAuthorize("@fundoAuthorizationService.temScope(authentication, 'fundos:write')")
     public ResponseEntity<FundoModel> atualizar(
             @PathVariable Long id,
             @RequestBody FundoModel model,
@@ -65,13 +69,13 @@ public class FundoController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("@fundoAuthorizationService.ehAdministrador(authentication)")
+    @PreAuthorize("@fundoAuthorizationService.temScope(authentication, 'fundos:write')")
     public ResponseEntity<Void> deletar(@PathVariable Long id, Authentication authentication) {
         return fundoService.deletar(id) ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
     }
 
     @PutMapping("/{fundoId}/usuarios/{usuarioId}")
-    @PreAuthorize("@fundoAuthorizationService.ehAdministrador(authentication)")
+    @PreAuthorize("@fundoAuthorizationService.temScope(authentication, 'fundos:write')")
     public ResponseEntity<Void> associarUsuario(
             @PathVariable Long fundoId,
             @PathVariable Long usuarioId,
@@ -81,7 +85,7 @@ public class FundoController {
     }
 
     @DeleteMapping("/{fundoId}/usuarios/{usuarioId}")
-    @PreAuthorize("@fundoAuthorizationService.ehAdministrador(authentication)")
+    @PreAuthorize("@fundoAuthorizationService.temScope(authentication, 'fundos:write')")
     public ResponseEntity<Void> removerUsuario(
             @PathVariable Long fundoId,
             @PathVariable Long usuarioId,

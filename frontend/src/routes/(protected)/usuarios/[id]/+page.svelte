@@ -2,6 +2,7 @@
     import {onMount} from 'svelte';
     import {page} from '$app/state';
     import {api} from '$lib/api';
+    import {hasRole} from '$lib/permissions';
     import type {Fund, UserAccess} from '$lib/types';
 
     let user = $state<UserAccess | null>(null);
@@ -16,7 +17,7 @@
     onMount(async () => {
         try {
             const [users, loadedFunds] = await Promise.all([api.users(), api.funds()]);
-            user = users.find((item) => item.id === Number(page.params.id) && item.tipo.toUpperCase() !== 'ADMIN') ?? null;
+            user = users.find((item) => item.id === Number(page.params.id) && !hasRole(item, 'ADMIN')) ?? null;
             funds = loadedFunds;
             if (!user) error = 'Usuário não encontrado.';
         } catch (err: unknown) {
